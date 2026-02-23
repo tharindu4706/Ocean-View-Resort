@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room Categories - Ocean View Resort</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Room Category Management</h1>
+            <p>Manage Room Categories and Pricing</p>
+        </header>
+
+        <nav>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="guests.html">Guests</a>
+            <a href="room-categories.html">Room Categories</a>
+            <a href="rooms.html">Rooms</a>
+            <a href="reservations.html">Reservations</a>
+            <a href="help.html">Help</a>
+        </nav>
+
+        <main>
+            <section>
+                <h2>Room Categories</h2>
+                <button onclick="showAddForm()" class="btn">+ Add Room Category</button>
+
+                <div id="addForm" style="display:none; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+                    <h3 id="formTitle">Add Room Category</h3>
+                    <form id="categoryForm">
+                        <input type="hidden" id="categoryId">
+                        <div class="form-group">
+                            <label>Category Name:</label>
+                            <input type="text" id="categoryName" required placeholder="e.g., SINGLE, DOUBLE, SUITE">
+                        </div>
+                        <div class="form-group">
+                            <label>Room Capacity (persons):</label>
+                            <input type="number" id="capacity" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>DAY USE Price (LKR) - Check-in 8 AM, Checkout 6 PM:</label>
+                            <input type="number" id="dayUsePrice" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>DAY USE - Late Hour Price Per Hour (LKR):</label>
+                            <input type="number" id="dayUseHourlyRate" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label>OVERNIGHT Price (LKR) - Check-in 2 PM, Checkout 12 PM next day:</label>
+                            <input type="number" id="overnightPrice" step="0.01" required onchange="calculateLateCharges()">
+                        </div>
+                        <div class="form-group">
+                            <label>Late Checkout Half-Day Charge (up to 6 hours) - Auto: Half of OVERNIGHT price:</label>
+                            <input type="number" id="lateCheckoutHalfDay" step="0.01" required readonly style="background: #e9ecef;">
+                        </div>
+                        <div class="form-group">
+                            <label>Late Checkout Full-Day Charge (after 6 hours) - Auto: Full OVERNIGHT price:</label>
+                            <input type="number" id="lateCheckoutFullDay" step="0.01" required readonly style="background: #e9ecef;">
+                        </div>
+                        <button type="submit" class="btn">Save Category</button>
+                        <button type="button" onclick="hideAddForm()" class="btn" style="background: #7f8c8d;">Cancel</button>
+                    </form>
+                </div>
+
+                <table id="categoriesTable">
+                    <thead>
+                        <tr>
+                            <th>Category Name</th>
+                            <th>Capacity</th>
+                            <th>Day Use Price</th>
+                            <th>Hourly Rate</th>
+                            <th>Overnight Price</th>
+                            <th>Late Checkout (Half)</th>
+                            <th>Late Checkout (Full)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categoriesList">
+                        <tr>
+                            <td colspan="8">Loading categories...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Ocean View Resort. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/oceanview-resort/api';
+
+        function calculateLateCharges() {
+            const overnight = parseFloat(document.getElementById('overnightPrice').value) || 0;
+            document.getElementById('lateCheckoutHalfDay').value = (overnight / 2).toFixed(2);
+            document.getElementById('lateCheckoutFullDay').value = overnight.toFixed(2);
+        }
+
+        function showAddForm() {
+            document.getElementById('formTitle').textContent = 'Add Room Category';
+            document.getElementById('categoryForm').reset();
+            document.getElementById('categoryId').value = '';
+            document.getElementById('addForm').style.display = 'block';
+        }
+
+        function hideAddForm() {
+            document.getElementById('addForm').style.display = 'none';
+            document.getElementById('categoryForm').reset();
+        }
+
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_BASE}/room-categories/`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    displayCategories(result.data);
+                } else {
+                    document.getElementById('categoriesList').innerHTML = '<tr><td colspan="8">No categories found</td></tr>';
+                }
+            } catch (error) {
+                document.getElementById('categoriesList').innerHTML = '<tr><td colspan="8">Error loading categories</td></tr>';
+            }
+        }
+
+        function displayCategories(categories) {
+            const tbody = document.getElementById('categoriesList');
+            if (categories.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">No categories available.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = categories.map(cat => `
+                <tr>
+                    <td><strong>${cat.categoryName}</strong></td>
+                    <td>${cat.capacity} person(s)</td>
+                    <td>LKR ${cat.dayUsePrice.toFixed(2)}</td>
+                    <td>LKR ${cat.dayUseHourlyRate.toFixed(2)}</td>
+                    <td>LKR ${cat.overnightPrice.toFixed(2)}</td>
+                    <td>LKR ${cat.lateCheckoutHalfDay.toFixed(2)}</td>
+                    <td>LKR ${cat.lateCheckoutFullDay.toFixed(2)}</td>
+                    <td>
+                        <button onclick="editCategory(${cat.categoryId})" class="btn" style="padding: 5px 10px; font-size: 12px;">Edit</button>
+                        <button onclick="deleteCategory(${cat.categoryId})" class="btn" style="padding: 5px 10px; font-size: 12px; background: #e74c3c;">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        document.getElementById('categoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const categoryId = document.getElementById('categoryId').value;
+            const category = {
+                categoryName: document.getElementById('categoryName').value.toUpperCase(),
+                capacity: parseInt(document.getElementById('capacity').value),
+                dayUsePrice: parseFloat(document.getElementById('dayUsePrice').value),
+                dayUseHourlyRate: parseFloat(document.getElementById('dayUseHourlyRate').value),
+                overnightPrice: parseFloat(document.getElementById('overnightPrice').value),
+                lateCheckoutHalfDay: parseFloat(document.getElementById('lateCheckoutHalfDay').value),
+                lateCheckoutFullDay: parseFloat(document.getElementById('lateCheckoutFullDay').value)
+            };
+
+            try {
+                let url = `${API_BASE}/room-categories/`;
+                let method = 'POST';
+
+                if (categoryId) {
+                    category.categoryId = parseInt(categoryId);
+                    url = `${API_BASE}/room-categories/${categoryId}`;
+                    method = 'PUT';
+                }
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(category)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(categoryId ? 'Category updated successfully!' : 'Category added successfully!');
+                    hideAddForm();
+                    loadCategories();
+                } else {
+                    alert('Failed to save category: ' + result.message);
+                }
+            } catch (error) {
+                alert('Error saving category');
+            }
+        });
+
+        async function deleteCategory(id) {
+            if (!confirm('Are you sure? This will affect all rooms using this category!')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/room-categories/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Category deleted!');
+                    loadCategories();
+                } else {
+                    alert('Failed to delete category. May be in use by rooms.');
+                }
+            } catch (error) {
+                alert('Error deleting category');
+            }
+        }
+
+        async function editCategory(id) {
+            try {
+                const response = await fetch(`${API_BASE}/room-categories/${id}`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const cat = result.data;
+                    document.getElementById('formTitle').textContent = 'Edit Room Category';
+                    document.getElementById('categoryId').value = cat.categoryId;
+                    document.getElementById('categoryName').value = cat.categoryName;
+                    document.getElementById('capacity').value = cat.capacity;
+                    document.getElementById('dayUsePrice').value = cat.dayUsePrice;
+                    document.getElementById('dayUseHourlyRate').value = cat.dayUseHourlyRate;
+                    document.getElementById('overnightPrice').value = cat.overnightPrice;
+                    document.getElementById('lateCheckoutHalfDay').value = cat.lateCheckoutHalfDay;
+                    document.getElementById('lateCheckoutFullDay').value = cat.lateCheckoutFullDay;
+                    document.getElementById('addForm').style.display = 'block';
+                } else {
+                    alert('Failed to load category data');
+                }
+            } catch (error) {
+                alert('Error loading category data');
+            }
+        }
+
+        loadCategories();
+    </script>
+</body>
+</html>
