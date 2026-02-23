@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>Ocean View Resort - API Test</h1>
+
+    <h2>Step 1: Test Connection</h2>
+    <button onclick="testConnection()">Test Server Connection</button>
+    <div id="connectionResult"></div>
+
+    <h2>Step 2: Test Login</h2>
+    <button onclick="testLogin()">Test Login (admin/admin123)</button>
+    <div id="loginResult"></div>
+
+    <h2>Step 3: Test Database</h2>
+    <button onclick="testDatabase()">Test Get Guests</button>
+    <div id="databaseResult"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/oceanview-resort/api';
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.innerHTML = 'Testing...';
+
+            try {
+                const response = await fetch(API_BASE + '/guests/');
+                const result = await response.json();
+                resultDiv.innerHTML = '<pre style="color: green;">✅ Connection OK!\n' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (error) {
+                resultDiv.innerHTML = '<pre style="color: red;">❌ Connection FAILED!\nError: ' + error.message + '\n\nPossible causes:\n1. Tomcat not running\n2. Application not deployed\n3. Wrong URL</pre>';
+            }
+        }
+
+        async function testLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            resultDiv.innerHTML = 'Testing login...';
+
+            try {
+                const response = await fetch(API_BASE + '/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    resultDiv.innerHTML = '<pre style="color: green;">✅ Login SUCCESSFUL!\n' + JSON.stringify(result, null, 2) + '</pre>';
+                } else {
+                    resultDiv.innerHTML = '<pre style="color: orange;">⚠️ Login FAILED!\n' + JSON.stringify(result, null, 2) + '\n\nPossible causes:\n1. Database not setup\n2. Wrong password hash\n3. User not in database</pre>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<pre style="color: red;">❌ API Call FAILED!\nError: ' + error.message + '\n\nPossible causes:\n1. LoginServlet not deployed\n2. Backend not running\n3. CORS issue</pre>';
+            }
+        }
+
+        async function testDatabase() {
+            const resultDiv = document.getElementById('databaseResult');
+            resultDiv.innerHTML = 'Testing database...';
+
+            try {
+                const response = await fetch(API_BASE + '/guests/');
+                const result = await response.json();
+
+                if (result.success) {
+                    resultDiv.innerHTML = '<pre style="color: green;">✅ Database OK!\nFound ' + result.data.length + ' guests\n' + JSON.stringify(result, null, 2) + '</pre>';
+                } else {
+                    resultDiv.innerHTML = '<pre style="color: orange;">⚠️ Database Query Issue\n' + JSON.stringify(result, null, 2) + '</pre>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<pre style="color: red;">❌ Database Connection FAILED!\nError: ' + error.message + '\n\nPossible causes:\n1. MySQL not running\n2. Database "oceanview_resort" not created\n3. Wrong DB credentials in DatabaseConfig.java</pre>';
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        div[id$="Result"] {
+            margin-top: 10px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            min-height: 50px;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</body>
+</html>

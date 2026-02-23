@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bills - Ocean View Resort</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Bill Management</h1>
+            <p>Calculate and View Bills</p>
+        </header>
+
+        <nav>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="guests.html">Guests</a>
+            <a href="rooms.html">Rooms</a>
+            <a href="reservations.html">Reservations</a>
+            <a href="help.html">Help</a>
+        </nav>
+
+        <main>
+            <section>
+                <h2>Calculate Bill</h2>
+                <div class="form-group">
+                    <label>Enter Reservation ID:</label>
+                    <input type="number" id="reservationId" placeholder="e.g., 1">
+                    <button onclick="calculateBill()" class="btn">Calculate Bill</button>
+                </div>
+
+                <div id="billResult" style="margin-top: 30px;"></div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Ocean View Resort. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/oceanview-resort/api';
+
+        async function calculateBill() {
+            const reservationId = document.getElementById('reservationId').value;
+
+            if (!reservationId) {
+                alert('Please enter a reservation ID');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/bill/${reservationId}`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    displayBill(result.data);
+                } else {
+                    document.getElementById('billResult').innerHTML = '<p class="message error">Reservation not found or API error</p>';
+                }
+            } catch (error) {
+                document.getElementById('billResult').innerHTML = '<p class="message error">Error loading bill. API may not be working.</p>';
+            }
+        }
+
+        function displayBill(bill) {
+            const html = `
+                <div style="background: white; padding: 30px; border: 2px solid #2c3e50; border-radius: 10px;">
+                    <h2 style="text-align: center; color: #2c3e50;">OCEAN VIEW RESORT</h2>
+                    <h3 style="text-align: center; color: #7f8c8d;">Invoice</h3>
+                    <hr>
+                    <table style="width: 100%; margin: 20px 0;">
+                        <tr>
+                            <td><strong>Reservation Number:</strong></td>
+                            <td>${bill.reservationNumber}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Guest Name:</strong></td>
+                            <td>${bill.guestName}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Room Number:</strong></td>
+                            <td>${bill.roomNumber}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Check-In Date:</strong></td>
+                            <td>${bill.checkInDate}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Check-Out Date:</strong></td>
+                            <td>${bill.checkOutDate}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Number of Nights:</strong></td>
+                            <td>${bill.numberOfNights}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Price per Night:</strong></td>
+                            <td>LKR ${bill.pricePerNight.toFixed(2)}</td>
+                        </tr>
+                    </table>
+                    <hr>
+                    <table style="width: 100%; font-size: 16px;">
+                        <tr>
+                            <td><strong>Subtotal:</strong></td>
+                            <td style="text-align: right;"><strong>LKR ${bill.subtotal.toFixed(2)}</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Tax (10%):</strong></td>
+                            <td style="text-align: right;"><strong>LKR ${bill.tax.toFixed(2)}</strong></td>
+                        </tr>
+                        <tr style="font-size: 20px; color: #27ae60;">
+                            <td><strong>TOTAL:</strong></td>
+                            <td style="text-align: right;"><strong>LKR ${bill.total.toFixed(2)}</strong></td>
+                        </tr>
+                    </table>
+                    <hr>
+                    <p style="text-align: center; color: #7f8c8d; margin-top: 20px;">Thank you for staying with us!</p>
+                    <button onclick="window.print()" class="btn" style="width: 100%; margin-top: 20px;">Print Bill</button>
+                </div>
+            `;
+
+            document.getElementById('billResult').innerHTML = html;
+        }
+    </script>
+</body>
+</html>

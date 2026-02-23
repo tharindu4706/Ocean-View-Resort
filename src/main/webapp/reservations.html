@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservations - Ocean View Resort</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Reservation Management</h1>
+            <p>Manage Hotel Reservations</p>
+        </header>
+
+        <nav>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="guests.html">Guests</a>
+            <a href="rooms.html">Rooms</a>
+            <a href="reservations.html">Reservations</a>
+            <a href="help.html">Help</a>
+        </nav>
+
+        <main>
+            <section>
+                <h2>All Reservations</h2>
+                <p>View all bookings</p>
+
+                <table id="reservationsTable">
+                    <thead>
+                        <tr>
+                            <th>Reservation #</th>
+                            <th>Guest ID</th>
+                            <th>Room ID</th>
+                            <th>Check-In</th>
+                            <th>Check-Out</th>
+                            <th>Status</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reservationsList">
+                        <tr>
+                            <td colspan="7">Loading reservations...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Ocean View Resort. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/oceanview-resort/api';
+
+        async function loadReservations() {
+            try {
+                const response = await fetch(`${API_BASE}/reservations/`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    displayReservations(result.data);
+                } else {
+                    document.getElementById('reservationsList').innerHTML = '<tr><td colspan="7">No reservations found or API error</td></tr>';
+                }
+            } catch (error) {
+                document.getElementById('reservationsList').innerHTML = '<tr><td colspan="7">Error loading reservations. API may not be working.</td></tr>';
+            }
+        }
+
+        function displayReservations(reservations) {
+            const tbody = document.getElementById('reservationsList');
+            if (reservations.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7">No reservations yet.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = reservations.map(res => `
+                <tr>
+                    <td><strong>${res.reservationNumber}</strong></td>
+                    <td>${res.guestId}</td>
+                    <td>${res.roomId}</td>
+                    <td>${new Date(res.checkInDate).toLocaleDateString()}</td>
+                    <td>${new Date(res.checkOutDate).toLocaleDateString()}</td>
+                    <td><span style="padding: 3px 8px; border-radius: 3px; background: ${res.status === 'CONFIRMED' ? '#d4edda' : '#ffeaa7'};">${res.status}</span></td>
+                    <td>LKR ${res.totalAmount.toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Load reservations when page loads
+        loadReservations();
+    </script>
+</body>
+</html>

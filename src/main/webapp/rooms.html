@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rooms - Ocean View Resort</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Room Management</h1>
+            <p>Manage Hotel Rooms</p>
+        </header>
+
+        <nav>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="guests.html">Guests</a>
+            <a href="rooms.html">Rooms</a>
+            <a href="reservations.html">Reservations</a>
+            <a href="help.html">Help</a>
+        </nav>
+
+        <main>
+            <section>
+                <h2>All Rooms</h2>
+                <p>View and manage room inventory</p>
+
+                <table id="roomsTable">
+                    <thead>
+                        <tr>
+                            <th>Room Number</th>
+                            <th>Room Type</th>
+                            <th>Price/Night</th>
+                            <th>Capacity</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="roomsList">
+                        <tr>
+                            <td colspan="5">Loading rooms...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Ocean View Resort. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/oceanview-resort/api';
+
+        async function loadRooms() {
+            try {
+                const response = await fetch(`${API_BASE}/rooms/`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    displayRooms(result.data);
+                } else {
+                    document.getElementById('roomsList').innerHTML = '<tr><td colspan="5">No rooms found or API error</td></tr>';
+                }
+            } catch (error) {
+                document.getElementById('roomsList').innerHTML = '<tr><td colspan="5">Error loading rooms. API may not be working.</td></tr>';
+            }
+        }
+
+        function displayRooms(rooms) {
+            const tbody = document.getElementById('roomsList');
+            if (rooms.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No rooms available.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = rooms.map(room => `
+                <tr style="background: ${room.available ? '#d4edda' : '#f8d7da'};">
+                    <td><strong>${room.roomNumber}</strong></td>
+                    <td>${room.roomType}</td>
+                    <td>LKR ${room.pricePerNight.toFixed(2)}</td>
+                    <td>${room.capacity} person(s)</td>
+                    <td><strong>${room.available ? '✅ Available' : '❌ Occupied'}</strong></td>
+                </tr>
+            `).join('');
+        }
+
+        // Load rooms when page loads
+        loadRooms();
+    </script>
+</body>
+</html>
