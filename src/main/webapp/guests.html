@@ -27,8 +27,9 @@
                 <button onclick="showAddForm()" class="btn">+ Add New Guest</button>
 
                 <div id="addForm" style="display:none; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px;">
-                    <h3>Add New Guest</h3>
+                    <h3 id="formTitle">Add New Guest</h3>
                     <form id="guestForm">
+                        <input type="hidden" id="guestId">
                         <div class="form-group">
                             <label>Guest Name:</label>
                             <input type="text" id="guestName" required>
@@ -84,11 +85,15 @@
         const API_BASE = 'http://localhost:8080/oceanview-resort/api';
 
         function showAddForm() {
+            document.getElementById('formTitle').textContent = 'Add New Guest';
+            document.getElementById('guestForm').reset();
+            document.getElementById('guestId').value = '';
             document.getElementById('addForm').style.display = 'block';
         }
 
         function hideAddForm() {
             document.getElementById('addForm').style.display = 'none';
+            document.getElementById('guestForm').reset();
         }
 
         async function loadGuests() {
@@ -131,6 +136,7 @@
         document.getElementById('guestForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            const guestId = document.getElementById('guestId').value;
             const guest = {
                 guestName: document.getElementById('guestName').value,
                 address: document.getElementById('address').value,
@@ -140,8 +146,17 @@
             };
 
             try {
-                const response = await fetch(`${API_BASE}/guests/`, {
-                    method: 'POST',
+                let url = `${API_BASE}/guests/`;
+                let method = 'POST';
+
+                if (guestId) {
+                    guest.guestId = parseInt(guestId);
+                    url = `${API_BASE}/guests/${guestId}`;
+                    method = 'PUT';
+                }
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(guest)
                 });
@@ -149,15 +164,15 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('Guest added successfully!');
+                    alert(guestId ? 'Guest updated successfully!' : 'Guest added successfully!');
                     hideAddForm();
                     loadGuests();
                     document.getElementById('guestForm').reset();
                 } else {
-                    alert('Failed to add guest: ' + result.message);
+                    alert('Failed to save guest: ' + result.message);
                 }
             } catch (error) {
-                alert('Error adding guest. API may not be working.');
+                alert('Error saving guest. API may not be working.');
             }
         });
 
@@ -182,8 +197,27 @@
             }
         }
 
-        function editGuest(id) {
-            alert('Edit functionality would go here for guest ID: ' + id);
+        async function editGuest(id) {
+            try {
+                const response = await fetch(`${API_BASE}/guests/${id}`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const guest = result.data;
+                    document.getElementById('formTitle').textContent = 'Edit Guest';
+                    document.getElementById('guestId').value = guest.guestId;
+                    document.getElementById('guestName').value = guest.guestName;
+                    document.getElementById('address').value = guest.address;
+                    document.getElementById('contactNumber').value = guest.contactNumber;
+                    document.getElementById('email').value = guest.email || '';
+                    document.getElementById('idNumber').value = guest.idNumber || '';
+                    document.getElementById('addForm').style.display = 'block';
+                } else {
+                    alert('Failed to load guest data');
+                }
+            } catch (error) {
+                alert('Error loading guest data');
+            }
         }
 
         // Load guests when page loads

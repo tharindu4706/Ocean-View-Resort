@@ -72,11 +72,11 @@ CREATE TABLE payments (
     FOREIGN KEY (reservation_id) REFERENCES reservations(reservation_id)
 );
 
--- Insert Sample Users (password: admin123, staff123)
+-- Insert Sample Users (password: admin123, staff123, manager123)
 INSERT INTO users (username, password, email, role, active) VALUES
 ('admin', '0192023a7bbd73250516f069df18b500', 'admin@oceanview.com', 'ADMIN', TRUE),
-('staff1', '9d3c05ab129ccf72ca14538f973549d8', 'staff1@oceanview.com', 'STAFF', TRUE),
-('manager', '1d0258c2440a8d19e716292b231e3190', 'manager@oceanview.com', 'MANAGER', TRUE);
+('staff1', 'de9bf5643eabf80f4a56fda3bbb84483', 'staff1@oceanview.com', 'STAFF', TRUE),
+('manager', '0795151defba7a4b5dfa89170de46277', 'manager@oceanview.com', 'MANAGER', TRUE);
 
 -- Insert Sample Rooms
 INSERT INTO rooms (room_number, room_type, price_per_night, capacity, available) VALUES
