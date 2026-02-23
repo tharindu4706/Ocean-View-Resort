@@ -60,7 +60,7 @@ public class BillServlet extends BaseServlet {
 
                 long nights = DateUtil.daysBetween(reservation.getCheckInDate(), reservation.getCheckOutDate());
                 bill.setNumberOfNights((int) nights);
-                bill.setPricePerNight(room != null ? room.getPricePerNight() : 0);
+                bill.setPricePerNight(room != null ? room.getOvernightPrice() : 0);
 
                 double subtotal = billCalculator.calculateBill(reservation);
                 double tax = subtotal * 0.1;

@@ -20,14 +20,12 @@ public class RoomDAOImpl implements RoomDAO {
 
     @Override
     public boolean add(Room room) {
-        String sql = "INSERT INTO rooms (room_number, room_type, price_per_night, capacity, available) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO rooms (room_number, category_id, available) VALUES (?, ?, ?)";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, room.getRoomNumber());
-            statement.setString(2, room.getRoomType());
-            statement.setDouble(3, room.getPricePerNight());
-            statement.setInt(4, room.getCapacity());
-            statement.setBoolean(5, room.isAvailable());
+            statement.setInt(2, room.getCategoryId());
+            statement.setBoolean(3, room.isAvailable());
             int rows = statement.executeUpdate();
             return rows > 0;
         } catch (SQLException e) {
@@ -38,15 +36,13 @@ public class RoomDAOImpl implements RoomDAO {
 
     @Override
     public boolean update(Room room) {
-        String sql = "UPDATE rooms SET room_number=?, room_type=?, price_per_night=?, capacity=?, available=? WHERE room_id=?";
+        String sql = "UPDATE rooms SET room_number=?, category_id=?, available=? WHERE room_id=?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, room.getRoomNumber());
-            statement.setString(2, room.getRoomType());
-            statement.setDouble(3, room.getPricePerNight());
-            statement.setInt(4, room.getCapacity());
-            statement.setBoolean(5, room.isAvailable());
-            statement.setInt(6, room.getRoomId());
+            statement.setInt(2, room.getCategoryId());
+            statement.setBoolean(3, room.isAvailable());
+            statement.setInt(4, room.getRoomId());
             int rows = statement.executeUpdate();
             return rows > 0;
         } catch (SQLException e) {
@@ -71,7 +67,11 @@ public class RoomDAOImpl implements RoomDAO {
 
     @Override
     public Room getById(int id) {
-        String sql = "SELECT * FROM rooms WHERE room_id=?";
+        String sql = "SELECT r.*, rc.category_name, rc.capacity, rc.day_use_price, rc.overnight_price, " +
+                     "rc.day_use_hourly_rate, rc.late_checkout_half_day, rc.late_checkout_full_day " +
+                     "FROM rooms r " +
+                     "JOIN room_categories rc ON r.category_id = rc.category_id " +
+                     "WHERE r.room_id=?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setInt(1, id);
@@ -88,7 +88,11 @@ public class RoomDAOImpl implements RoomDAO {
     @Override
     public List<Room> getAll() {
         List<Room> rooms = new ArrayList<>();
-        String sql = "SELECT * FROM rooms";
+        String sql = "SELECT r.*, rc.category_name, rc.capacity, rc.day_use_price, rc.overnight_price, " +
+                     "rc.day_use_hourly_rate, rc.late_checkout_half_day, rc.late_checkout_full_day " +
+                     "FROM rooms r " +
+                     "JOIN room_categories rc ON r.category_id = rc.category_id " +
+                     "ORDER BY r.room_number";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             ResultSet result = statement.executeQuery();
@@ -103,7 +107,11 @@ public class RoomDAOImpl implements RoomDAO {
 
     @Override
     public Room findByRoomNumber(String roomNumber) {
-        String sql = "SELECT * FROM rooms WHERE room_number=?";
+        String sql = "SELECT r.*, rc.category_name, rc.capacity, rc.day_use_price, rc.overnight_price, " +
+                     "rc.day_use_hourly_rate, rc.late_checkout_half_day, rc.late_checkout_full_day " +
+                     "FROM rooms r " +
+                     "JOIN room_categories rc ON r.category_id = rc.category_id " +
+                     "WHERE r.room_number=?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, roomNumber);
@@ -120,7 +128,12 @@ public class RoomDAOImpl implements RoomDAO {
     @Override
     public List<Room> findAvailableRooms() {
         List<Room> rooms = new ArrayList<>();
-        String sql = "SELECT * FROM rooms WHERE available=true";
+        String sql = "SELECT r.*, rc.category_name, rc.capacity, rc.day_use_price, rc.overnight_price, " +
+                     "rc.day_use_hourly_rate, rc.late_checkout_half_day, rc.late_checkout_full_day " +
+                     "FROM rooms r " +
+                     "JOIN room_categories rc ON r.category_id = rc.category_id " +
+                     "WHERE r.available=true " +
+                     "ORDER BY r.room_number";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             ResultSet result = statement.executeQuery();
@@ -136,7 +149,12 @@ public class RoomDAOImpl implements RoomDAO {
     @Override
     public List<Room> findByRoomType(String roomType) {
         List<Room> rooms = new ArrayList<>();
-        String sql = "SELECT * FROM rooms WHERE room_type=?";
+        String sql = "SELECT r.*, rc.category_name, rc.capacity, rc.day_use_price, rc.overnight_price, " +
+                     "rc.day_use_hourly_rate, rc.late_checkout_half_day, rc.late_checkout_full_day " +
+                     "FROM rooms r " +
+                     "JOIN room_categories rc ON r.category_id = rc.category_id " +
+                     "WHERE rc.category_name=? " +
+                     "ORDER BY r.room_number";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, roomType);
@@ -170,10 +188,15 @@ public class RoomDAOImpl implements RoomDAO {
         Room room = new Room();
         room.setRoomId(result.getInt("room_id"));
         room.setRoomNumber(result.getString("room_number"));
-        room.setRoomType(result.getString("room_type"));
-        room.setPricePerNight(result.getDouble("price_per_night"));
-        room.setCapacity(result.getInt("capacity"));
+        room.setCategoryId(result.getInt("category_id"));
+        room.setCategoryName(result.getString("category_name"));
         room.setAvailable(result.getBoolean("available"));
+        room.setCapacity(result.getInt("capacity"));
+        room.setDayUsePrice(result.getDouble("day_use_price"));
+        room.setOvernightPrice(result.getDouble("overnight_price"));
+        room.setDayUseHourlyRate(result.getDouble("day_use_hourly_rate"));
+        room.setLateCheckoutHalfDay(result.getDouble("late_checkout_half_day"));
+        room.setLateCheckoutFullDay(result.getDouble("late_checkout_full_day"));
         return room;
     }
 }

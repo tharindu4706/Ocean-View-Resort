@@ -16,6 +16,7 @@
         <nav>
             <a href="dashboard.html">Dashboard</a>
             <a href="guests.html">Guests</a>
+            <a href="room-categories.html">Room Categories</a>
             <a href="rooms.html">Rooms</a>
             <a href="reservations.html">Reservations</a>
             <a href="help.html">Help</a>
@@ -35,25 +36,13 @@
                             <input type="text" id="roomNumber" required>
                         </div>
                         <div class="form-group">
-                            <label>Room Type:</label>
-                            <select id="roomType" required>
-                                <option value="">Select Type</option>
-                                <option value="SINGLE">SINGLE</option>
-                                <option value="DOUBLE">DOUBLE</option>
-                                <option value="SUITE">SUITE</option>
-                                <option value="DELUXE">DELUXE</option>
+                            <label>Room Type (Category):</label>
+                            <select id="categoryId" required>
+                                <option value="">Select Category</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Price Per Night (LKR):</label>
-                            <input type="number" id="pricePerNight" step="0.01" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Capacity:</label>
-                            <input type="number" id="capacity" min="1" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Available:</label>
+                            <label>Status:</label>
                             <select id="available" required>
                                 <option value="true">Available</option>
                                 <option value="false">Occupied</option>
@@ -62,7 +51,6 @@
                         <button type="submit" class="btn">Save Room</button>
                         <button type="button" onclick="hideAddForm()" class="btn" style="background: #7f8c8d;">Cancel</button>
                     </form>
-                    <div id="message"></div>
                 </div>
 
                 <table id="roomsTable">
@@ -70,7 +58,8 @@
                         <tr>
                             <th>Room Number</th>
                             <th>Room Type</th>
-                            <th>Price/Night</th>
+                            <th>Day Use</th>
+                            <th>Overnight</th>
                             <th>Capacity</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -78,7 +67,7 @@
                     </thead>
                     <tbody id="roomsList">
                         <tr>
-                            <td colspan="6">Loading rooms...</td>
+                            <td colspan="7">Loading rooms...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -93,16 +82,34 @@
     <script>
         const API_BASE = 'http://localhost:8080/oceanview-resort/api';
 
-        function showAddForm() {
+        async function showAddForm() {
             document.getElementById('formTitle').textContent = 'Add New Room';
             document.getElementById('roomForm').reset();
             document.getElementById('roomId').value = '';
+            await loadCategoriesDropdown();
             document.getElementById('addForm').style.display = 'block';
         }
 
         function hideAddForm() {
             document.getElementById('addForm').style.display = 'none';
             document.getElementById('roomForm').reset();
+        }
+
+        async function loadCategoriesDropdown() {
+            try {
+                const response = await fetch(`${API_BASE}/room-categories/`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const select = document.getElementById('categoryId');
+                    select.innerHTML = '<option value="">Select Category</option>';
+                    result.data.forEach(cat => {
+                        select.innerHTML += `<option value="${cat.categoryId}">${cat.categoryName} - ${cat.capacity} person(s)</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
         }
 
         async function loadRooms() {
@@ -113,25 +120,26 @@
                 if (result.success && result.data) {
                     displayRooms(result.data);
                 } else {
-                    document.getElementById('roomsList').innerHTML = '<tr><td colspan="6">No rooms found or API error</td></tr>';
+                    document.getElementById('roomsList').innerHTML = '<tr><td colspan="7">No rooms found</td></tr>';
                 }
             } catch (error) {
-                document.getElementById('roomsList').innerHTML = '<tr><td colspan="6">Error loading rooms. API may not be working.</td></tr>';
+                document.getElementById('roomsList').innerHTML = '<tr><td colspan="7">Error loading rooms</td></tr>';
             }
         }
 
         function displayRooms(rooms) {
             const tbody = document.getElementById('roomsList');
             if (rooms.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6">No rooms available.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7">No rooms available.</td></tr>';
                 return;
             }
 
             tbody.innerHTML = rooms.map(room => `
                 <tr style="background: ${room.available ? '#d4edda' : '#f8d7da'};">
                     <td><strong>${room.roomNumber}</strong></td>
-                    <td>${room.roomType}</td>
-                    <td>LKR ${room.pricePerNight.toFixed(2)}</td>
+                    <td>${room.categoryName}</td>
+                    <td>LKR ${room.dayUsePrice ? room.dayUsePrice.toFixed(2) : '0.00'}</td>
+                    <td>LKR ${room.overnightPrice ? room.overnightPrice.toFixed(2) : '0.00'}</td>
                     <td>${room.capacity} person(s)</td>
                     <td><strong>${room.available ? '✅ Available' : '❌ Occupied'}</strong></td>
                     <td>
@@ -148,9 +156,7 @@
             const roomId = document.getElementById('roomId').value;
             const room = {
                 roomNumber: document.getElementById('roomNumber').value,
-                roomType: document.getElementById('roomType').value,
-                pricePerNight: parseFloat(document.getElementById('pricePerNight').value),
-                capacity: parseInt(document.getElementById('capacity').value),
+                categoryId: parseInt(document.getElementById('categoryId').value),
                 available: document.getElementById('available').value === 'true'
             };
 
@@ -176,12 +182,11 @@
                     alert(roomId ? 'Room updated successfully!' : 'Room added successfully!');
                     hideAddForm();
                     loadRooms();
-                    document.getElementById('roomForm').reset();
                 } else {
                     alert('Failed to save room: ' + result.message);
                 }
             } catch (error) {
-                alert('Error saving room. API may not be working.');
+                alert('Error saving room');
             }
         });
 
@@ -216,9 +221,8 @@
                     document.getElementById('formTitle').textContent = 'Edit Room';
                     document.getElementById('roomId').value = room.roomId;
                     document.getElementById('roomNumber').value = room.roomNumber;
-                    document.getElementById('roomType').value = room.roomType;
-                    document.getElementById('pricePerNight').value = room.pricePerNight;
-                    document.getElementById('capacity').value = room.capacity;
+                    await loadCategoriesDropdown();
+                    document.getElementById('categoryId').value = room.categoryId;
                     document.getElementById('available').value = room.available.toString();
                     document.getElementById('addForm').style.display = 'block';
                 } else {
@@ -229,7 +233,6 @@
             }
         }
 
-        // Load rooms when page loads
         loadRooms();
     </script>
 </body>

@@ -23,7 +23,8 @@ public class BillCalculator {
         if (days <= 0) {
             days = 1;
         }
-        double total = NumberUtil.multiply(room.getPricePerNight(), days);
+        // Use overnight price for multi-day stays
+        double total = NumberUtil.multiply(room.getOvernightPrice(), days);
         return NumberUtil.roundToTwoDecimals(total);
     }
 
