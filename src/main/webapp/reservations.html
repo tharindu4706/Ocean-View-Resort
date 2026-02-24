@@ -998,6 +998,20 @@
         // Load data when page loads
         loadDropdowns();
         loadOngoingReservations();
+
+        // Check if redirected from guest creation with ID number
+        const urlParams = new URLSearchParams(window.location.search);
+        const guestIdNumber = urlParams.get('guestIdNumber');
+        if (guestIdNumber) {
+            // Show add form
+            showAddForm();
+            // Fill in the guest ID number and search
+            document.getElementById('searchIdNumber').value = guestIdNumber;
+            // Auto-search after a brief delay to ensure form is visible
+            setTimeout(() => {
+                searchGuest();
+            }, 300);
+        }
     </script>
 </body>
 </html>

@@ -167,10 +167,18 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert(guestId ? 'Guest updated successfully!' : 'Guest added successfully!');
-                    hideAddForm();
-                    loadGuests();
-                    document.getElementById('guestForm').reset();
+                    if (guestId) {
+                        // Updating existing guest
+                        alert('Guest updated successfully!');
+                        hideAddForm();
+                        loadGuests();
+                        document.getElementById('guestForm').reset();
+                    } else {
+                        // New guest created - redirect to reservations
+                        alert('Guest added successfully! Redirecting to create reservation...');
+                        const idNumber = document.getElementById('idNumber').value;
+                        window.location.href = `reservations.html?guestIdNumber=${encodeURIComponent(idNumber)}`;
+                    }
                 } else {
                     alert('Failed to save guest: ' + result.message);
                 }
