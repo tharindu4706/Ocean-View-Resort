@@ -31,6 +31,7 @@
             <a href="rooms.html">Rooms</a>
             <a href="meals.html">Meals</a>
             <a href="reservations.html">Reservations</a>
+            <a href="billing.html">Billing</a>
             <a href="help.html">Help</a>
         </nav>
 
@@ -543,7 +544,7 @@
                             <td>${res.numberOfDays || 0}</td>
                             <td>LKR ${res.totalAmount ? res.totalAmount.toFixed(2) : '0.00'}</td>
                             <td>
-                                <select onchange="updateStatus(${res.reservationId}, this.value)" style="padding: 3px 8px; border-radius: 3px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb;">
+                                <select onchange="updateStatus(${res.reservationId}, this.value, '${res.status}')" style="padding: 3px 8px; border-radius: 3px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb;">
                                     <option value="PENDING" ${res.status === 'PENDING' ? 'selected' : ''}>PENDING</option>
                                     <option value="CONFIRMED" ${res.status === 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
                                     <option value="CHECKED_IN" ${res.status === 'CHECKED_IN' ? 'selected' : ''}>CHECKED_IN</option>
@@ -565,8 +566,33 @@
             }
         }
 
-        async function updateStatus(reservationId, newStatus) {
+        async function updateStatus(reservationId, newStatus, currentStatus) {
             try {
+                // Validate status order
+                const validTransitions = {
+                    'PENDING': ['CONFIRMED', 'CANCELLED'],
+                    'CONFIRMED': ['CHECKED_IN', 'CANCELLED'],
+                    'CHECKED_IN': ['CHECKED_OUT', 'CANCELLED'],
+                    'CHECKED_OUT': [], // No transitions from CHECKED_OUT
+                    'CANCELLED': [] // No transitions from CANCELLED
+                };
+
+                // Allow CANCELLED at any time (except from CHECKED_OUT or already CANCELLED)
+                if (newStatus === 'CANCELLED' && currentStatus !== 'CHECKED_OUT' && currentStatus !== 'CANCELLED') {
+                    // Allowed
+                } else if (!validTransitions[currentStatus] || !validTransitions[currentStatus].includes(newStatus)) {
+                    alert('Invalid status change! Please follow the correct order:\nPENDING → CONFIRMED → CHECKED_IN → CHECKED_OUT\n\nYou can select CANCELLED at any time (except from CHECKED_OUT).');
+                    loadOngoingReservations(); // Reset the dropdown
+                    return;
+                }
+
+                // Show confirmation dialog
+                const confirmMessage = `Are you sure you want to change status from ${currentStatus} to ${newStatus}?`;
+                if (!confirm(confirmMessage)) {
+                    loadOngoingReservations(); // Reset the dropdown
+                    return;
+                }
+
                 const response = await fetch(`${API_BASE}/reservations/${reservationId}`);
                 const result = await response.json();
 
@@ -612,16 +638,25 @@
                     const updateResult = await updateResponse.json();
                     if (updateResult.success) {
                         alert('Status updated successfully');
-                        loadOngoingReservations();
+
+                        // If status changed to CHECKED_OUT, redirect to billing page
+                        if (newStatus === 'CHECKED_OUT') {
+                            window.location.href = `billing.html?reservationId=${reservationId}`;
+                        } else {
+                            loadOngoingReservations();
+                        }
                     } else {
                         alert('Failed to update status: ' + updateResult.message);
+                        loadOngoingReservations();
                     }
                 } else {
                     alert('Failed to load reservation: ' + result.message);
+                    loadOngoingReservations();
                 }
             } catch (error) {
                 console.error('Error updating status:', error);
                 alert('Error updating status: ' + error.message);
+                loadOngoingReservations();
             }
         }
 
