@@ -32,6 +32,7 @@
             <a href="meals.html">Meals</a>
             <a href="reservations.html">Reservations</a>
             <a href="billing.html">Billing</a>
+            <a href="users.html">Users</a>
             <a href="help.html">Help</a>
         </nav>
 
@@ -439,6 +440,83 @@
                 }
             } catch (error) {
                 alert('Error searching guest');
+            }
+        }
+
+        // Check for date overlap with existing reservations and warn user
+        async function checkDateOverlap(guestId, checkInDate, checkOutDate, excludeReservationId = null) {
+            try {
+                // Fetch all reservations for this guest
+                const response = await fetch(`${API_BASE}/reservations/`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    // Filter for ongoing reservations of this guest
+                    const guestReservations = result.data.filter(r =>
+                        r.guestId === guestId &&
+                        (r.status === 'PENDING' || r.status === 'CONFIRMED' || r.status === 'CHECKED_IN') &&
+                        (excludeReservationId === null || r.reservationId !== excludeReservationId)
+                    );
+
+                    console.log(`Checking dates for guest ${guestId}:`, checkInDate, 'to', checkOutDate);
+                    console.log(`Found ${guestReservations.length} ongoing reservations for this guest`);
+
+                    // Normalize dates to compare only date part (ignore time)
+                    function normalizeDate(dateStr) {
+                        const d = new Date(dateStr);
+                        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                    }
+
+                    const newCheckIn = normalizeDate(checkInDate);
+                    const newCheckOut = normalizeDate(checkOutDate);
+
+                    // Check each existing reservation for overlap
+                    for (const reservation of guestReservations) {
+                        const existingCheckIn = normalizeDate(reservation.checkInDate);
+                        const existingCheckOut = normalizeDate(reservation.checkOutDate);
+
+                        console.log(`Comparing with ${reservation.reservationNumber}:`, existingCheckIn, 'to', existingCheckOut);
+
+                        // Check if dates overlap
+                        // Overlap occurs if: (newCheckIn < existingCheckOut) AND (newCheckOut > existingCheckIn)
+                        // OR if dates are exactly the same
+                        const hasOverlap = (newCheckIn < existingCheckOut && newCheckOut > existingCheckIn) ||
+                                         (newCheckIn.getTime() === existingCheckIn.getTime() && newCheckOut.getTime() === existingCheckOut.getTime());
+
+                        if (hasOverlap) {
+                            const existingCheckInStr = existingCheckIn.toLocaleDateString();
+                            const existingCheckOutStr = existingCheckOut.toLocaleDateString();
+                            const newCheckInStr = newCheckIn.toLocaleDateString();
+                            const newCheckOutStr = newCheckOut.toLocaleDateString();
+
+                            console.log('OVERLAP DETECTED!');
+
+                            // Show warning and ask for confirmation
+                            let warningMessage;
+                            if (newCheckIn.getTime() === existingCheckIn.getTime() && newCheckOut.getTime() === existingCheckOut.getTime()) {
+                                warningMessage = `⚠️ WARNING: Multiple Reservations on Same Dates!\n\nThis guest already has an ongoing reservation (${reservation.reservationNumber}) for the SAME dates.\n\nExisting Reservation:\nRoom Category: ${reservation.categoryName || 'Unknown'}\nCheck-In: ${existingCheckInStr}\nCheck-Out: ${existingCheckOutStr}\n\nNew Reservation:\nCheck-In: ${newCheckInStr}\nCheck-Out: ${newCheckOutStr}\n\nThe guest may be booking a different room category.\n\nDo you want to continue with this reservation?`;
+                            } else {
+                                warningMessage = `⚠️ WARNING: Overlapping Reservations!\n\nThis guest already has an ongoing reservation (${reservation.reservationNumber}) that overlaps with the selected dates.\n\nExisting Reservation:\nRoom Category: ${reservation.categoryName || 'Unknown'}\nCheck-In: ${existingCheckInStr}\nCheck-Out: ${existingCheckOutStr}\n\nNew Reservation:\nCheck-In: ${newCheckInStr}\nCheck-Out: ${newCheckOutStr}\n\nDo you want to continue with this reservation?`;
+                            }
+
+                            // Ask user to confirm
+                            const userConfirmed = confirm(warningMessage);
+                            if (!userConfirmed) {
+                                return true; // User cancelled, stop reservation
+                            }
+                            // User confirmed, continue with reservation
+                            return false;
+                        }
+                    }
+
+                    console.log('No overlap found');
+                }
+
+                return false; // No overlap
+            } catch (error) {
+                console.error('Error checking date overlap:', error);
+                alert('Error validating dates. Please try again.');
+                return true; // Treat error as overlap to prevent creation
             }
         }
 
@@ -912,6 +990,18 @@
             };
 
             try {
+                // Check for overlapping reservations before creating/updating
+                const hasOverlap = await checkDateOverlap(
+                    reservation.guestId,
+                    reservation.checkInDate,
+                    reservation.checkOutDate,
+                    isEdit ? parseInt(isEdit) : null
+                );
+
+                if (hasOverlap) {
+                    return; // Stop if overlap exists (error already shown)
+                }
+
                 let response;
                 if (isEdit) {
                     // Update existing reservation
@@ -975,6 +1065,18 @@
             };
 
             try {
+                // Check for date overlap before updating
+                const hasOverlap = await checkDateOverlap(
+                    reservation.guestId,
+                    reservation.checkInDate,
+                    reservation.checkOutDate,
+                    reservation.reservationId
+                );
+
+                if (hasOverlap) {
+                    return; // Stop if overlap exists (error already shown)
+                }
+
                 const response = await fetch(`${API_BASE}/reservations/`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -1013,5 +1115,6 @@
             }, 300);
         }
     </script>
+    <script src="js/auth.js"></script>
 </body>
 </html>
