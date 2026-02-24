@@ -20,16 +20,32 @@ public class ReservationDAOImpl implements ReservationDAO {
 
     @Override
     public boolean add(Reservation reservation) {
-        String sql = "INSERT INTO reservations (reservation_number, guest_id, room_id, check_in_date, check_out_date, status, total_amount) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO reservations (reservation_number, guest_id, adults, kids, category_id, booking_type, " +
+                     "number_of_rooms, check_in_date, check_out_date, number_of_days, meal_plan_id, " +
+                     "room_charges, meal_charges, extra_charges, total_amount, status) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, reservation.getReservationNumber());
             statement.setInt(2, reservation.getGuestId());
-            statement.setInt(3, reservation.getRoomId());
-            statement.setDate(4, new java.sql.Date(reservation.getCheckInDate().getTime()));
-            statement.setDate(5, new java.sql.Date(reservation.getCheckOutDate().getTime()));
-            statement.setString(6, reservation.getStatus());
-            statement.setDouble(7, reservation.getTotalAmount());
+            statement.setInt(3, reservation.getAdults());
+            statement.setInt(4, reservation.getKids());
+            statement.setInt(5, reservation.getCategoryId());
+            statement.setString(6, reservation.getBookingType());
+            statement.setInt(7, reservation.getNumberOfRooms());
+            statement.setDate(8, new java.sql.Date(reservation.getCheckInDate().getTime()));
+            statement.setDate(9, new java.sql.Date(reservation.getCheckOutDate().getTime()));
+            statement.setInt(10, reservation.getNumberOfDays());
+            if (reservation.getMealPlanId() != null) {
+                statement.setInt(11, reservation.getMealPlanId());
+            } else {
+                statement.setNull(11, java.sql.Types.INTEGER);
+            }
+            statement.setDouble(12, 0); // room_charges - calculated on insert
+            statement.setDouble(13, 0); // meal_charges
+            statement.setDouble(14, 0); // extra_charges
+            statement.setDouble(15, reservation.getTotalAmount());
+            statement.setString(16, reservation.getStatus());
             int rows = statement.executeUpdate();
             return rows > 0;
         } catch (SQLException e) {
@@ -177,11 +193,35 @@ public class ReservationDAOImpl implements ReservationDAO {
         reservation.setReservationId(result.getInt("reservation_id"));
         reservation.setReservationNumber(result.getString("reservation_number"));
         reservation.setGuestId(result.getInt("guest_id"));
-        reservation.setRoomId(result.getInt("room_id"));
+
+        // Try to get room_id (may not exist in new schema)
+        try {
+            reservation.setRoomId(result.getInt("room_id"));
+        } catch (SQLException e) {
+            // Column doesn't exist, skip it
+        }
+
         reservation.setCheckInDate(result.getDate("check_in_date"));
         reservation.setCheckOutDate(result.getDate("check_out_date"));
         reservation.setStatus(result.getString("status"));
         reservation.setTotalAmount(result.getDouble("total_amount"));
+
+        // New fields
+        try {
+            reservation.setAdults(result.getInt("adults"));
+            reservation.setKids(result.getInt("kids"));
+            reservation.setCategoryId(result.getInt("category_id"));
+            reservation.setBookingType(result.getString("booking_type"));
+            reservation.setNumberOfRooms(result.getInt("number_of_rooms"));
+            reservation.setNumberOfDays(result.getInt("number_of_days"));
+            int mealPlanId = result.getInt("meal_plan_id");
+            if (!result.wasNull()) {
+                reservation.setMealPlanId(mealPlanId);
+            }
+        } catch (SQLException e) {
+            // Some columns may not exist in older records
+        }
+
         return reservation;
     }
 }

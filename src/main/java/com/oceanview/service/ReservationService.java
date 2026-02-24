@@ -27,14 +27,16 @@ public class ReservationService {
             System.out.println("Validation failed: " + validator.getErrorMessage());
             return false;
         }
-        String reservationNumber = ReservationNumberGenerator.generate();
-        reservation.setReservationNumber(reservationNumber);
-        reservation.setStatus("CONFIRMED");
-        boolean success = reservationDAO.add(reservation);
-        if (success) {
-            roomService.makeRoomUnavailable(reservation.getRoomId());
+        // Generate reservation number if not provided
+        if (reservation.getReservationNumber() == null || reservation.getReservationNumber().isEmpty()) {
+            String reservationNumber = ReservationNumberGenerator.generate();
+            reservation.setReservationNumber(reservationNumber);
         }
-        return success;
+        // Set status if not provided
+        if (reservation.getStatus() == null || reservation.getStatus().isEmpty()) {
+            reservation.setStatus("CONFIRMED");
+        }
+        return reservationDAO.add(reservation);
     }
 
     // Get reservation by ID
@@ -61,11 +63,7 @@ public class ReservationService {
         Reservation reservation = reservationDAO.getById(id);
         if (reservation != null) {
             reservation.setStatus("CANCELLED");
-            boolean success = reservationDAO.update(reservation);
-            if (success) {
-                roomService.makeRoomAvailable(reservation.getRoomId());
-            }
-            return success;
+            return reservationDAO.update(reservation);
         }
         return false;
     }

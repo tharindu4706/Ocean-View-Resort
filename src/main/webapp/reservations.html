@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reservations - Ocean View Resort</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .section-tabs { display: flex; gap: 10px; margin: 20px 0; }
+        .section-tabs button { padding: 10px 20px; border: none; cursor: pointer; background: #95a5a6; color: white; border-radius: 5px; }
+        .section-tabs button.active { background: #3498db; }
+        .section-content { display: none; }
+        .section-content.active { display: block; }
+        .bill-summary { background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .bill-summary h4 { margin: 0 0 15px 0; color: #2e7d32; }
+        .bill-line { display: flex; justify-content: space-between; padding: 5px 0; }
+        .bill-total { font-size: 1.3em; font-weight: bold; border-top: 2px solid #2e7d32; padding-top: 10px; margin-top: 10px; }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -25,27 +36,169 @@
 
         <main>
             <section>
-                <h2>All Reservations</h2>
-                <p>View all bookings</p>
+                <h2>Reservations</h2>
 
-                <table id="reservationsTable">
-                    <thead>
-                        <tr>
-                            <th>Reservation #</th>
-                            <th>Guest ID</th>
-                            <th>Room ID</th>
-                            <th>Check-In</th>
-                            <th>Check-Out</th>
-                            <th>Status</th>
-                            <th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reservationsList">
-                        <tr>
-                            <td colspan="7">Loading reservations...</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="section-tabs">
+                    <button class="active" onclick="showSection('add')">+ Add New Reservation</button>
+                    <button onclick="showSection('ongoing')">Ongoing Reservations</button>
+                    <button onclick="showSection('completed')">Completed Reservations</button>
+                </div>
+
+                <!-- Add Reservation Section -->
+                <div id="section-add" class="section-content active">
+                    <h3>Add New Reservation</h3>
+                    <form id="reservationForm">
+                        <div class="form-group">
+                            <label>1. Search Guest by ID Number:</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="searchIdNumber" placeholder="Enter ID number">
+                                <button type="button" onclick="searchGuest()" class="btn">Search</button>
+                            </div>
+                            <div id="guestInfo" style="margin-top: 10px; color: green;"></div>
+                            <input type="hidden" id="guestId">
+                        </div>
+
+                        <div class="form-group">
+                            <label>2. Number of Adults:</label>
+                            <input type="number" id="adults" min="1" value="1" required onchange="calculateBill()">
+                        </div>
+
+                        <div class="form-group">
+                            <label>3. Number of Kids:</label>
+                            <input type="number" id="kids" min="0" value="0" onchange="calculateBill()">
+                        </div>
+
+                        <div class="form-group">
+                            <label>4. Room Category:</label>
+                            <select id="categoryId" required onchange="calculateBill()">
+                                <option value="">Select Category</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>5. Booking Type:</label>
+                            <select id="bookingType" required onchange="calculateBill()">
+                                <option value="">Select Type</option>
+                                <option value="DAY_USE">DAY USE (8 AM - 6 PM)</option>
+                                <option value="OVERNIGHT">OVERNIGHT (2 PM - 12 PM next day)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>6. Number of Rooms:</label>
+                            <input type="number" id="numberOfRooms" min="1" value="1" required onchange="calculateBill()">
+                        </div>
+
+                        <div class="form-group">
+                            <label>7. Check-in Date:</label>
+                            <input type="date" id="checkInDate" required onchange="calculateDays()">
+                        </div>
+
+                        <div class="form-group">
+                            <label>8. Check-out Date:</label>
+                            <input type="date" id="checkOutDate" required onchange="calculateDays()">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Days Staying:</label>
+                            <input type="number" id="numberOfDays" readonly style="background: #e9ecef;">
+                        </div>
+
+                        <div class="form-group">
+                            <label>9. Meal Plan:</label>
+                            <select id="mealPlanId" onchange="calculateBill()">
+                                <option value="">No Meal Plan</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>10. Extra Meals (Optional):</label>
+                            <select id="extraMeals" multiple size="4" onchange="calculateBill()">
+                            </select>
+                            <small>Hold Ctrl to select multiple</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>11. Beverages (Optional):</label>
+                            <select id="beverages" multiple size="4" onchange="calculateBill()">
+                            </select>
+                            <small>Hold Ctrl to select multiple</small>
+                        </div>
+
+                        <div class="bill-summary">
+                            <h4>Bill Summary</h4>
+                            <div class="bill-line">
+                                <span>Room Charges:</span>
+                                <span>LKR <span id="billRoomCharges">0.00</span></span>
+                            </div>
+                            <div class="bill-line">
+                                <span>Meal Plan Charges:</span>
+                                <span>LKR <span id="billMealCharges">0.00</span></span>
+                            </div>
+                            <div class="bill-line">
+                                <span>Extra Charges (Meals & Beverages):</span>
+                                <span>LKR <span id="billExtraCharges">0.00</span></span>
+                            </div>
+                            <div class="bill-line bill-total">
+                                <span>TOTAL AMOUNT:</span>
+                                <span>LKR <span id="billTotalAmount">0.00</span></span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn">Create Reservation</button>
+                        <button type="button" onclick="resetForm()" class="btn" style="background: #7f8c8d;">Reset</button>
+                    </form>
+                </div>
+
+                <!-- Ongoing Reservations Section -->
+                <div id="section-ongoing" class="section-content">
+                    <h3>Ongoing Reservations</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Res#</th>
+                                <th>Guest</th>
+                                <th>Adults/Kids</th>
+                                <th>Category</th>
+                                <th>Type</th>
+                                <th>Rooms</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>Days</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ongoingList">
+                            <tr><td colspan="11">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Completed Reservations Section -->
+                <div id="section-completed" class="section-content">
+                    <h3>Completed Reservations</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Res#</th>
+                                <th>Guest</th>
+                                <th>Adults/Kids</th>
+                                <th>Category</th>
+                                <th>Type</th>
+                                <th>Rooms</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>Days</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="completedList">
+                            <tr><td colspan="11">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </section>
         </main>
 
@@ -56,44 +209,223 @@
 
     <script>
         const API_BASE = 'http://localhost:8080/oceanview-resort/api';
+        let categories = [];
+        let mealPlans = [];
+        let extraMealsList = [];
+        let beveragesList = [];
 
-        async function loadReservations() {
-            try {
-                const response = await fetch(`${API_BASE}/reservations/`);
-                const result = await response.json();
+        function showSection(section) {
+            document.querySelectorAll('.section-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.section-tabs button').forEach(el => el.classList.remove('active'));
+            document.getElementById(`section-${section}`).classList.add('active');
+            event.target.classList.add('active');
 
-                if (result.success && result.data) {
-                    displayReservations(result.data);
-                } else {
-                    document.getElementById('reservationsList').innerHTML = '<tr><td colspan="7">No reservations found or API error</td></tr>';
-                }
-            } catch (error) {
-                document.getElementById('reservationsList').innerHTML = '<tr><td colspan="7">Error loading reservations. API may not be working.</td></tr>';
+            if (section === 'ongoing') loadOngoingReservations();
+            if (section === 'completed') loadCompletedReservations();
+        }
+
+        async function loadDropdowns() {
+            // Load categories
+            const catResponse = await fetch(`${API_BASE}/room-categories/`);
+            const catResult = await catResponse.json();
+            if (catResult.success) {
+                categories = catResult.data;
+                const select = document.getElementById('categoryId');
+                categories.forEach(cat => {
+                    select.innerHTML += `<option value="${cat.categoryId}">${cat.categoryName} - ${cat.capacity} persons (Day: LKR ${cat.dayUsePrice}, Night: LKR ${cat.overnightPrice})</option>`;
+                });
+            }
+
+            // Load meal plans
+            const mealResponse = await fetch(`${API_BASE}/meals/?type=meal-plans`);
+            const mealResult = await mealResponse.json();
+            if (mealResult.success) {
+                mealPlans = mealResult.data;
+                const select = document.getElementById('mealPlanId');
+                mealPlans.forEach(plan => {
+                    if (plan.available) {
+                        select.innerHTML += `<option value="${plan.id}">${plan.name} - LKR ${plan.price}</option>`;
+                    }
+                });
+            }
+
+            // Load extra meals
+            const extraResponse = await fetch(`${API_BASE}/meals/?type=extra-meals`);
+            const extraResult = await extraResponse.json();
+            if (extraResult.success) {
+                extraMealsList = extraResult.data;
+                const select = document.getElementById('extraMeals');
+                extraMealsList.forEach(meal => {
+                    if (meal.available) {
+                        select.innerHTML += `<option value="${meal.id}">${meal.name} - LKR ${meal.price}</option>`;
+                    }
+                });
+            }
+
+            // Load beverages
+            const bevResponse = await fetch(`${API_BASE}/meals/?type=beverages`);
+            const bevResult = await bevResponse.json();
+            if (bevResult.success) {
+                beveragesList = bevResult.data;
+                const select = document.getElementById('beverages');
+                beveragesList.forEach(bev => {
+                    if (bev.available) {
+                        select.innerHTML += `<option value="${bev.id}">${bev.name} - LKR ${bev.price}</option>`;
+                    }
+                });
             }
         }
 
-        function displayReservations(reservations) {
-            const tbody = document.getElementById('reservationsList');
-            if (reservations.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7">No reservations yet.</td></tr>';
+        async function searchGuest() {
+            const idNumber = document.getElementById('searchIdNumber').value.trim();
+            if (!idNumber) {
+                alert('Please enter ID number');
                 return;
             }
 
-            tbody.innerHTML = reservations.map(res => `
-                <tr>
-                    <td><strong>${res.reservationNumber}</strong></td>
-                    <td>${res.guestId}</td>
-                    <td>${res.roomId}</td>
-                    <td>${new Date(res.checkInDate).toLocaleDateString()}</td>
-                    <td>${new Date(res.checkOutDate).toLocaleDateString()}</td>
-                    <td><span style="padding: 3px 8px; border-radius: 3px; background: ${res.status === 'CONFIRMED' ? '#d4edda' : '#ffeaa7'};">${res.status}</span></td>
-                    <td>LKR ${res.totalAmount.toFixed(2)}</td>
-                </tr>
-            `).join('');
+            try {
+                const response = await fetch(`${API_BASE}/guests/`);
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const guest = result.data.find(g => g.idNumber === idNumber);
+                    if (guest) {
+                        document.getElementById('guestId').value = guest.guestId;
+                        document.getElementById('guestInfo').innerHTML = `✓ Found: ${guest.guestName} (${guest.contactNumber})`;
+                    } else {
+                        document.getElementById('guestInfo').innerHTML = '<span style="color:red">✗ Guest not found</span>';
+                        document.getElementById('guestId').value = '';
+                    }
+                }
+            } catch (error) {
+                alert('Error searching guest');
+            }
         }
 
-        // Load reservations when page loads
-        loadReservations();
+        function calculateDays() {
+            const checkIn = new Date(document.getElementById('checkInDate').value);
+            const checkOut = new Date(document.getElementById('checkOutDate').value);
+
+            if (checkIn && checkOut && checkOut > checkIn) {
+                const days = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+                document.getElementById('numberOfDays').value = days;
+                calculateBill();
+            }
+        }
+
+        function calculateBill() {
+            const categoryId = parseInt(document.getElementById('categoryId').value);
+            const bookingType = document.getElementById('bookingType').value;
+            const numberOfRooms = parseInt(document.getElementById('numberOfRooms').value) || 1;
+            const numberOfDays = parseInt(document.getElementById('numberOfDays').value) || 1;
+            const adults = parseInt(document.getElementById('adults').value) || 1;
+            const kids = parseInt(document.getElementById('kids').value) || 0;
+            const totalPersons = adults + kids;
+
+            let roomCharges = 0;
+            let mealCharges = 0;
+            let extraCharges = 0;
+
+            // Calculate room charges
+            if (categoryId && bookingType) {
+                const category = categories.find(c => c.categoryId === categoryId);
+                if (category) {
+                    const pricePerRoom = bookingType === 'DAY_USE' ? category.dayUsePrice : category.overnightPrice;
+                    roomCharges = pricePerRoom * numberOfRooms * numberOfDays;
+                }
+            }
+
+            // Calculate meal plan charges
+            const mealPlanId = parseInt(document.getElementById('mealPlanId').value);
+            if (mealPlanId) {
+                const mealPlan = mealPlans.find(m => m.id === mealPlanId);
+                if (mealPlan) {
+                    mealCharges = mealPlan.price * totalPersons * numberOfDays;
+                }
+            }
+
+            // Calculate extra meals and beverages
+            const selectedExtraMeals = Array.from(document.getElementById('extraMeals').selectedOptions).map(o => parseInt(o.value));
+            const selectedBeverages = Array.from(document.getElementById('beverages').selectedOptions).map(o => parseInt(o.value));
+
+            selectedExtraMeals.forEach(id => {
+                const meal = extraMealsList.find(m => m.id === id);
+                if (meal) extraCharges += meal.price * totalPersons;
+            });
+
+            selectedBeverages.forEach(id => {
+                const bev = beveragesList.find(b => b.id === id);
+                if (bev) extraCharges += bev.price * totalPersons;
+            });
+
+            const totalAmount = roomCharges + mealCharges + extraCharges;
+
+            document.getElementById('billRoomCharges').textContent = roomCharges.toFixed(2);
+            document.getElementById('billMealCharges').textContent = mealCharges.toFixed(2);
+            document.getElementById('billExtraCharges').textContent = extraCharges.toFixed(2);
+            document.getElementById('billTotalAmount').textContent = totalAmount.toFixed(2);
+        }
+
+        function resetForm() {
+            document.getElementById('reservationForm').reset();
+            document.getElementById('guestInfo').innerHTML = '';
+            document.getElementById('numberOfDays').value = '';
+            calculateBill();
+        }
+
+        async function loadOngoingReservations() {
+            document.getElementById('ongoingList').innerHTML = '<tr><td colspan="11">No ongoing reservations</td></tr>';
+        }
+
+        async function loadCompletedReservations() {
+            document.getElementById('completedList').innerHTML = '<tr><td colspan="11">No completed reservations</td></tr>';
+        }
+
+        document.getElementById('reservationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!document.getElementById('guestId').value) {
+                alert('Please search and select a guest first!');
+                return;
+            }
+
+            const reservation = {
+                reservationNumber: 'RES' + Date.now(),
+                guestId: parseInt(document.getElementById('guestId').value),
+                adults: parseInt(document.getElementById('adults').value),
+                kids: parseInt(document.getElementById('kids').value),
+                categoryId: parseInt(document.getElementById('categoryId').value),
+                bookingType: document.getElementById('bookingType').value,
+                numberOfRooms: parseInt(document.getElementById('numberOfRooms').value),
+                checkInDate: document.getElementById('checkInDate').value,
+                checkOutDate: document.getElementById('checkOutDate').value,
+                numberOfDays: parseInt(document.getElementById('numberOfDays').value),
+                mealPlanId: document.getElementById('mealPlanId').value ? parseInt(document.getElementById('mealPlanId').value) : null,
+                totalAmount: parseFloat(document.getElementById('billTotalAmount').textContent),
+                status: 'PENDING'
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/reservations/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reservation)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Reservation created successfully!');
+                    resetForm();
+                } else {
+                    alert('Failed to create reservation: ' + result.message);
+                }
+            } catch (error) {
+                alert('Error creating reservation: ' + error.message);
+            }
+        });
+
+        loadDropdowns();
     </script>
 </body>
 </html>

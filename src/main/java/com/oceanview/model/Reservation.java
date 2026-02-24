@@ -13,6 +13,16 @@ public class Reservation {
     private String status;
     private double totalAmount;
 
+    // New fields for comprehensive reservation
+    private int adults;
+    private int kids;
+    private int categoryId;
+    private String bookingType; // DAY_USE or OVERNIGHT
+    private int numberOfRooms;
+    private int numberOfDays;
+    private Integer mealPlanId; // nullable
+    private String extras; // JSON string for extra meals and beverages
+
     // Empty constructor
     public Reservation() {
     }
@@ -94,5 +104,70 @@ public class Reservation {
 
     public void setTotalAmount(double totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+    // Getters and Setters for new fields
+    public int getAdults() {
+        return adults;
+    }
+
+    public void setAdults(int adults) {
+        this.adults = adults;
+    }
+
+    public int getKids() {
+        return kids;
+    }
+
+    public void setKids(int kids) {
+        this.kids = kids;
+    }
+
+    public int getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(int categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public String getBookingType() {
+        return bookingType;
+    }
+
+    public void setBookingType(String bookingType) {
+        this.bookingType = bookingType;
+    }
+
+    public int getNumberOfRooms() {
+        return numberOfRooms;
+    }
+
+    public void setNumberOfRooms(int numberOfRooms) {
+        this.numberOfRooms = numberOfRooms;
+    }
+
+    public int getNumberOfDays() {
+        return numberOfDays;
+    }
+
+    public void setNumberOfDays(int numberOfDays) {
+        this.numberOfDays = numberOfDays;
+    }
+
+    public Integer getMealPlanId() {
+        return mealPlanId;
+    }
+
+    public void setMealPlanId(Integer mealPlanId) {
+        this.mealPlanId = mealPlanId;
+    }
+
+    public String getExtras() {
+        return extras;
+    }
+
+    public void setExtras(String extras) {
+        this.extras = extras;
     }
 }

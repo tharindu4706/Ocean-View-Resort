@@ -59,20 +59,42 @@ public class ReservationServlet extends BaseServlet {
 
         try {
             BufferedReader reader = request.getReader();
-            ReservationRequest reservationRequest = gson.fromJson(reader, ReservationRequest.class);
+            String json = reader.lines().collect(java.util.stream.Collectors.joining());
+
+            // Parse JSON manually to handle dates as strings
+            com.google.gson.JsonObject jsonObject = gson.fromJson(json, com.google.gson.JsonObject.class);
 
             Reservation reservation = new Reservation();
-            reservation.setGuestId(reservationRequest.getGuestId());
-            reservation.setRoomId(reservationRequest.getRoomId());
+            reservation.setReservationNumber(jsonObject.get("reservationNumber").getAsString());
+            reservation.setGuestId(jsonObject.get("guestId").getAsInt());
+            reservation.setAdults(jsonObject.get("adults").getAsInt());
+            reservation.setKids(jsonObject.get("kids").getAsInt());
+            reservation.setCategoryId(jsonObject.get("categoryId").getAsInt());
+            reservation.setBookingType(jsonObject.get("bookingType").getAsString());
+            reservation.setNumberOfRooms(jsonObject.get("numberOfRooms").getAsInt());
+            reservation.setNumberOfDays(jsonObject.get("numberOfDays").getAsInt());
+            reservation.setTotalAmount(jsonObject.get("totalAmount").getAsDouble());
+            reservation.setStatus(jsonObject.get("status").getAsString());
 
-            Date checkIn = DateUtil.stringToDate(reservationRequest.getCheckInDate());
-            Date checkOut = DateUtil.stringToDate(reservationRequest.getCheckOutDate());
+            // Handle optional meal plan
+            if (jsonObject.has("mealPlanId") && !jsonObject.get("mealPlanId").isJsonNull()) {
+                reservation.setMealPlanId(jsonObject.get("mealPlanId").getAsInt());
+            }
+
+            // Parse dates from yyyy-MM-dd format
+            String checkInStr = jsonObject.get("checkInDate").getAsString();
+            String checkOutStr = jsonObject.get("checkOutDate").getAsString();
+
+            Date checkIn = DateUtil.stringToDate(checkInStr);
+            Date checkOut = DateUtil.stringToDate(checkOutStr);
+
+            if (checkIn == null || checkOut == null) {
+                sendError(response, "Invalid date format. Use yyyy-MM-dd");
+                return;
+            }
 
             reservation.setCheckInDate(checkIn);
             reservation.setCheckOutDate(checkOut);
-
-            double totalAmount = billCalculator.calculateBill(reservation);
-            reservation.setTotalAmount(totalAmount);
 
             boolean success = reservationService.createReservation(reservation);
             if (success) {

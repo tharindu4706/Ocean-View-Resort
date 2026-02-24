@@ -29,8 +29,21 @@ public class ReservationValidator implements Validator<Reservation> {
             errorMessage = "Invalid guest ID";
             return false;
         }
-        if (reservation.getRoomId() <= 0) {
-            errorMessage = "Invalid room ID";
+        // Check for categoryId (new schema) instead of roomId
+        if (reservation.getCategoryId() <= 0) {
+            errorMessage = "Invalid category ID";
+            return false;
+        }
+        if (reservation.getAdults() <= 0) {
+            errorMessage = "At least one adult is required";
+            return false;
+        }
+        if (reservation.getNumberOfRooms() <= 0) {
+            errorMessage = "At least one room is required";
+            return false;
+        }
+        if (reservation.getBookingType() == null || reservation.getBookingType().isEmpty()) {
+            errorMessage = "Booking type is required";
             return false;
         }
         return true;
