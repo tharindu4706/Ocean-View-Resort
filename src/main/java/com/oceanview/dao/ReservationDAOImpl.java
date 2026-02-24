@@ -56,17 +56,29 @@ public class ReservationDAOImpl implements ReservationDAO {
 
     @Override
     public boolean update(Reservation reservation) {
-        String sql = "UPDATE reservations SET reservation_number=?, guest_id=?, room_id=?, check_in_date=?, check_out_date=?, status=?, total_amount=? WHERE reservation_id=?";
+        String sql = "UPDATE reservations SET reservation_number=?, guest_id=?, adults=?, kids=?, category_id=?, " +
+                     "booking_type=?, number_of_rooms=?, check_in_date=?, check_out_date=?, number_of_days=?, " +
+                     "meal_plan_id=?, total_amount=?, status=? WHERE reservation_id=?";
         try {
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, reservation.getReservationNumber());
             statement.setInt(2, reservation.getGuestId());
-            statement.setInt(3, reservation.getRoomId());
-            statement.setDate(4, new java.sql.Date(reservation.getCheckInDate().getTime()));
-            statement.setDate(5, new java.sql.Date(reservation.getCheckOutDate().getTime()));
-            statement.setString(6, reservation.getStatus());
-            statement.setDouble(7, reservation.getTotalAmount());
-            statement.setInt(8, reservation.getReservationId());
+            statement.setInt(3, reservation.getAdults());
+            statement.setInt(4, reservation.getKids());
+            statement.setInt(5, reservation.getCategoryId());
+            statement.setString(6, reservation.getBookingType());
+            statement.setInt(7, reservation.getNumberOfRooms());
+            statement.setDate(8, new java.sql.Date(reservation.getCheckInDate().getTime()));
+            statement.setDate(9, new java.sql.Date(reservation.getCheckOutDate().getTime()));
+            statement.setInt(10, reservation.getNumberOfDays());
+            if (reservation.getMealPlanId() != null) {
+                statement.setInt(11, reservation.getMealPlanId());
+            } else {
+                statement.setNull(11, java.sql.Types.INTEGER);
+            }
+            statement.setDouble(12, reservation.getTotalAmount());
+            statement.setString(13, reservation.getStatus());
+            statement.setInt(14, reservation.getReservationId());
             int rows = statement.executeUpdate();
             return rows > 0;
         } catch (SQLException e) {

@@ -42,4 +42,9 @@ public class DAOFactory {
     public PaymentDAO createPaymentDAO() {
         return new PaymentDAOImpl();
     }
+
+    // Create RoomCategoryDAO
+    public RoomCategoryDAO createRoomCategoryDAO() {
+        return new RoomCategoryDAOImpl();
+    }
 }

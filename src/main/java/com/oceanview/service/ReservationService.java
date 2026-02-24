@@ -1,8 +1,12 @@
 package com.oceanview.service;
 
 import com.oceanview.dao.ReservationDAO;
+import com.oceanview.dao.GuestDAO;
+import com.oceanview.dao.RoomCategoryDAO;
 import com.oceanview.factory.DAOFactory;
 import com.oceanview.model.Reservation;
+import com.oceanview.model.Guest;
+import com.oceanview.model.RoomCategory;
 import com.oceanview.util.DateUtil;
 import com.oceanview.util.ReservationNumberGenerator;
 import com.oceanview.validator.ReservationValidator;
@@ -12,11 +16,15 @@ import java.util.List;
 // Service class for Reservation business logic
 public class ReservationService {
     private ReservationDAO reservationDAO;
+    private GuestDAO guestDAO;
+    private RoomCategoryDAO roomCategoryDAO;
     private ReservationValidator validator;
     private RoomService roomService;
 
     public ReservationService() {
         this.reservationDAO = DAOFactory.getInstance().createReservationDAO();
+        this.guestDAO = DAOFactory.getInstance().createGuestDAO();
+        this.roomCategoryDAO = DAOFactory.getInstance().createRoomCategoryDAO();
         this.validator = new ReservationValidator();
         this.roomService = new RoomService();
     }
@@ -81,5 +89,44 @@ public class ReservationService {
     // Find reservation by number
     public Reservation findByReservationNumber(String reservationNumber) {
         return reservationDAO.findByReservationNumber(reservationNumber);
+    }
+
+    // Get all reservations with guest and category details
+    public List<Reservation> getAllReservationsWithDetails() {
+        List<Reservation> reservations = reservationDAO.getAll();
+
+        // Populate guest and category details
+        for (Reservation reservation : reservations) {
+            populateReservationDetails(reservation);
+        }
+
+        return reservations;
+    }
+
+    // Get single reservation by ID with guest and category details
+    public Reservation getReservationByIdWithDetails(int reservationId) {
+        Reservation reservation = reservationDAO.getById(reservationId);
+        if (reservation != null) {
+            populateReservationDetails(reservation);
+        }
+        return reservation;
+    }
+
+    // Helper method to populate guest and category details
+    private void populateReservationDetails(Reservation reservation) {
+        // Get guest details
+        Guest guest = guestDAO.getById(reservation.getGuestId());
+        if (guest != null) {
+            reservation.setGuestName(guest.getGuestName());
+            reservation.setGuestIdNumber(guest.getIdNumber());
+        }
+
+        // Get category details
+        if (reservation.getCategoryId() > 0) {
+            RoomCategory category = roomCategoryDAO.getById(reservation.getCategoryId());
+            if (category != null) {
+                reservation.setCategoryName(category.getCategoryName());
+            }
+        }
     }
 }

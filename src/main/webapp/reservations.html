@@ -39,13 +39,12 @@
                 <h2>Reservations</h2>
 
                 <div class="section-tabs">
-                    <button class="active" onclick="showSection('add')">+ Add New Reservation</button>
-                    <button onclick="showSection('ongoing')">Ongoing Reservations</button>
+                    <button id="addNewBtn" onclick="showAddForm()">+ Add New Reservation</button>
                     <button onclick="showSection('completed')">Completed Reservations</button>
                 </div>
 
                 <!-- Add Reservation Section -->
-                <div id="section-add" class="section-content active">
+                <div id="section-add" class="section-content" style="display: none;">
                     <h3>Add New Reservation</h3>
                     <form id="reservationForm">
                         <div class="form-group">
@@ -146,33 +145,154 @@
                         </div>
 
                         <button type="submit" class="btn">Create Reservation</button>
-                        <button type="button" onclick="resetForm()" class="btn" style="background: #7f8c8d;">Reset</button>
+                        <button type="button" onclick="cancelAddForm()" class="btn" style="background: #7f8c8d;">Cancel</button>
                     </form>
                 </div>
 
                 <!-- Ongoing Reservations Section -->
-                <div id="section-ongoing" class="section-content">
+                <div id="section-ongoing" style="display: block;">
                     <h3>Ongoing Reservations</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Res#</th>
-                                <th>Guest</th>
-                                <th>Adults/Kids</th>
-                                <th>Category</th>
-                                <th>Type</th>
-                                <th>Rooms</th>
-                                <th>Check-in</th>
-                                <th>Check-out</th>
-                                <th>Days</th>
-                                <th>Total</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ongoingList">
-                            <tr><td colspan="11">Loading...</td></tr>
-                        </tbody>
-                    </table>
+
+                    <!-- Edit Form (Hidden by default) -->
+                    <div id="editReservationForm" style="display: none; background: #f8f9fa; padding: 20px; margin-bottom: 20px; border-radius: 8px; border: 2px solid #3498db;">
+                        <h4>Edit Reservation</h4>
+                        <form id="editForm">
+                            <input type="hidden" id="edit_reservationId">
+                            <input type="hidden" id="edit_reservationNumber">
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div class="form-group">
+                                    <label>Guest Registration ID:</label>
+                                    <input type="text" id="edit_guestId" readonly style="background: #e9ecef; color: #495057; cursor: not-allowed;">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Guest Name:</label>
+                                    <input type="text" id="edit_guestName" readonly style="background: #e9ecef; color: #495057; cursor: not-allowed;">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Guest ID Number (NIC/Passport):</label>
+                                    <input type="text" id="edit_guestIdNumber" readonly style="background: #e9ecef; color: #495057; cursor: not-allowed;">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Room Category:</label>
+                                    <select id="edit_categoryId" required onchange="calculateEditBill()">
+                                        <option value="">Select Category</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Number of Adults:</label>
+                                    <input type="number" id="edit_adults" min="1" value="1" required onchange="calculateEditBill()">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Number of Kids:</label>
+                                    <input type="number" id="edit_kids" min="0" value="0" onchange="calculateEditBill()">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Booking Type:</label>
+                                    <select id="edit_bookingType" required onchange="calculateEditBill()">
+                                        <option value="DAY_USE">DAY USE (8 AM - 6 PM)</option>
+                                        <option value="OVERNIGHT">OVERNIGHT (2 PM - 12 PM next day)</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Number of Rooms:</label>
+                                    <input type="number" id="edit_numberOfRooms" min="1" value="1" required onchange="calculateEditBill()">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Check-in Date:</label>
+                                    <input type="date" id="edit_checkInDate" required onchange="calculateEditDays()">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Check-out Date:</label>
+                                    <input type="date" id="edit_checkOutDate" required onchange="calculateEditDays()">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Days Staying:</label>
+                                    <input type="number" id="edit_numberOfDays" readonly style="background: #e9ecef;">
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Meal Plan:</label>
+                                    <select id="edit_mealPlanId" onchange="calculateEditBill()">
+                                        <option value="">No Meal Plan</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Extra Meals:</label>
+                                    <select id="edit_extraMeals" multiple size="3" onchange="calculateEditBill()">
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Beverages:</label>
+                                    <select id="edit_beverages" multiple size="3" onchange="calculateEditBill()">
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="bill-summary" style="margin-top: 15px;">
+                                <h4>Updated Bill Summary</h4>
+                                <div class="bill-line">
+                                    <span>Room Charges:</span>
+                                    <span>LKR <span id="edit_billRoomCharges">0.00</span></span>
+                                </div>
+                                <div class="bill-line">
+                                    <span>Meal Plan Charges:</span>
+                                    <span>LKR <span id="edit_billMealCharges">0.00</span></span>
+                                </div>
+                                <div class="bill-line">
+                                    <span>Extra Charges:</span>
+                                    <span>LKR <span id="edit_billExtraCharges">0.00</span></span>
+                                </div>
+                                <div class="bill-line bill-total">
+                                    <span>TOTAL AMOUNT:</span>
+                                    <span>LKR <span id="edit_billTotalAmount">0.00</span></span>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 15px;">
+                                <button type="submit" class="btn">Save Changes</button>
+                                <button type="button" onclick="cancelEdit()" class="btn" style="background: #95a5a6;">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table style="font-size: 13px;">
+                            <thead>
+                                <tr>
+                                    <th style="min-width: 80px;">Res#</th>
+                                    <th style="min-width: 70px;">Guest ID</th>
+                                    <th style="min-width: 120px;">Guest Name</th>
+                                    <th style="min-width: 100px;">ID Number</th>
+                                    <th style="min-width: 70px;">Adults/Kids</th>
+                                    <th style="min-width: 90px;">Category</th>
+                                    <th style="min-width: 80px;">Type</th>
+                                    <th style="min-width: 60px;">Rooms</th>
+                                    <th style="min-width: 90px;">Check-in</th>
+                                    <th style="min-width: 90px;">Check-out</th>
+                                    <th style="min-width: 50px;">Days</th>
+                                    <th style="min-width: 90px;">Total</th>
+                                    <th style="min-width: 110px;">Status</th>
+                                    <th style="min-width: 150px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ongoingList">
+                                <tr><td colspan="14">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- Completed Reservations Section -->
@@ -214,14 +334,33 @@
         let extraMealsList = [];
         let beveragesList = [];
 
-        function showSection(section) {
-            document.querySelectorAll('.section-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.section-tabs button').forEach(el => el.classList.remove('active'));
-            document.getElementById(`section-${section}`).classList.add('active');
-            event.target.classList.add('active');
+        function showAddForm() {
+            // Hide ongoing reservations
+            document.getElementById('section-ongoing').style.display = 'none';
+            // Show add form
+            document.getElementById('section-add').style.display = 'block';
+            // Hide completed section if visible
+            document.getElementById('section-completed').style.display = 'none';
+        }
 
-            if (section === 'ongoing') loadOngoingReservations();
-            if (section === 'completed') loadCompletedReservations();
+        function cancelAddForm() {
+            // Hide add form
+            document.getElementById('section-add').style.display = 'none';
+            // Show ongoing reservations
+            document.getElementById('section-ongoing').style.display = 'block';
+            // Reset form
+            resetForm();
+        }
+
+        function showSection(section) {
+            if (section === 'completed') {
+                // Hide add form and ongoing
+                document.getElementById('section-add').style.display = 'none';
+                document.getElementById('section-ongoing').style.display = 'none';
+                // Show completed
+                document.getElementById('section-completed').style.display = 'block';
+                loadCompletedReservations();
+            }
         }
 
         async function loadDropdowns() {
@@ -374,11 +513,309 @@
         }
 
         async function loadOngoingReservations() {
-            document.getElementById('ongoingList').innerHTML = '<tr><td colspan="11">No ongoing reservations</td></tr>';
+            try {
+                const response = await fetch(`${API_BASE}/reservations/`);
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.length > 0) {
+                    const ongoingReservations = result.data.filter(r =>
+                        r.status === 'PENDING' || r.status === 'CONFIRMED' || r.status === 'CHECKED_IN'
+                    );
+
+                    if (ongoingReservations.length === 0) {
+                        document.getElementById('ongoingList').innerHTML = '<tr><td colspan="12">No ongoing reservations</td></tr>';
+                        return;
+                    }
+
+                    const tbody = document.getElementById('ongoingList');
+                    tbody.innerHTML = ongoingReservations.map(res => `
+                        <tr>
+                            <td><strong>${res.reservationNumber}</strong></td>
+                            <td>${res.guestId || '-'}</td>
+                            <td>${res.guestName || 'Unknown'}</td>
+                            <td>${res.guestIdNumber || '-'}</td>
+                            <td>${res.adults || 0}/${res.kids || 0}</td>
+                            <td>${res.categoryName || '-'}</td>
+                            <td>${res.bookingType || '-'}</td>
+                            <td>${res.numberOfRooms || 1}</td>
+                            <td>${res.checkInDate ? new Date(res.checkInDate).toLocaleDateString() : '-'}</td>
+                            <td>${res.checkOutDate ? new Date(res.checkOutDate).toLocaleDateString() : '-'}</td>
+                            <td>${res.numberOfDays || 0}</td>
+                            <td>LKR ${res.totalAmount ? res.totalAmount.toFixed(2) : '0.00'}</td>
+                            <td>
+                                <select onchange="updateStatus(${res.reservationId}, this.value)" style="padding: 3px 8px; border-radius: 3px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb;">
+                                    <option value="PENDING" ${res.status === 'PENDING' ? 'selected' : ''}>PENDING</option>
+                                    <option value="CONFIRMED" ${res.status === 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
+                                    <option value="CHECKED_IN" ${res.status === 'CHECKED_IN' ? 'selected' : ''}>CHECKED_IN</option>
+                                    <option value="CHECKED_OUT" ${res.status === 'CHECKED_OUT' ? 'selected' : ''}>CHECKED_OUT</option>
+                                    <option value="CANCELLED" ${res.status === 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>
+                                </select>
+                            </td>
+                            <td style="white-space: nowrap;">
+                                <button onclick="editReservation(${res.reservationId})" class="btn" style="padding: 4px 8px; font-size: 11px; margin-right: 3px;">Edit</button>
+                                <button onclick="deleteReservation(${res.reservationId})" class="btn" style="padding: 4px 8px; font-size: 11px; background: #e74c3c;">Del</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    document.getElementById('ongoingList').innerHTML = '<tr><td colspan="14">No ongoing reservations</td></tr>';
+                }
+            } catch (error) {
+                document.getElementById('ongoingList').innerHTML = '<tr><td colspan="14">Error loading reservations</td></tr>';
+            }
+        }
+
+        async function updateStatus(reservationId, newStatus) {
+            try {
+                const response = await fetch(`${API_BASE}/reservations/${reservationId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const reservation = result.data;
+                    reservation.status = newStatus;
+
+                    const updateResponse = await fetch(`${API_BASE}/reservations/`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(reservation)
+                    });
+
+                    const updateResult = await updateResponse.json();
+                    if (updateResult.success) {
+                        alert('Status updated successfully');
+                        loadOngoingReservations();
+                    } else {
+                        alert('Failed to update status');
+                    }
+                }
+            } catch (error) {
+                alert('Error updating status: ' + error.message);
+            }
+        }
+
+        async function editReservation(id) {
+            try {
+                const response = await fetch(`${API_BASE}/reservations/${id}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const reservation = result.data;
+                    console.log('Loading reservation for edit:', reservation);
+
+                    // Populate edit form dropdowns first
+                    await loadEditFormDropdowns();
+
+                    // Populate edit form with reservation data
+                    document.getElementById('edit_reservationId').value = reservation.reservationId || '';
+                    document.getElementById('edit_reservationNumber').value = reservation.reservationNumber || '';
+                    document.getElementById('edit_guestId').value = reservation.guestId || '';
+                    document.getElementById('edit_guestName').value = reservation.guestName || 'Unknown';
+                    document.getElementById('edit_guestIdNumber').value = reservation.guestIdNumber || '-';
+                    document.getElementById('edit_adults').value = reservation.adults || 1;
+                    document.getElementById('edit_kids').value = reservation.kids || 0;
+                    document.getElementById('edit_categoryId').value = reservation.categoryId || '';
+                    document.getElementById('edit_bookingType').value = reservation.bookingType || 'OVERNIGHT';
+                    document.getElementById('edit_numberOfRooms').value = reservation.numberOfRooms || 1;
+
+                    // Handle date formatting
+                    if (reservation.checkInDate) {
+                        const checkInDate = reservation.checkInDate.split('T')[0];
+                        document.getElementById('edit_checkInDate').value = checkInDate;
+                        console.log('Check-in date set to:', checkInDate);
+                    }
+
+                    if (reservation.checkOutDate) {
+                        const checkOutDate = reservation.checkOutDate.split('T')[0];
+                        document.getElementById('edit_checkOutDate').value = checkOutDate;
+                        console.log('Check-out date set to:', checkOutDate);
+                    }
+
+                    // Set number of days
+                    if (reservation.numberOfDays) {
+                        document.getElementById('edit_numberOfDays').value = reservation.numberOfDays;
+                    } else {
+                        calculateEditDays();
+                    }
+
+                    document.getElementById('edit_mealPlanId').value = reservation.mealPlanId || '';
+
+                    // Small delay to ensure form is populated before calculation
+                    setTimeout(() => {
+                        calculateEditBill();
+                    }, 100);
+
+                    // Show the edit form
+                    document.getElementById('editReservationForm').style.display = 'block';
+
+                    // Scroll to edit form
+                    document.getElementById('editReservationForm').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    alert('Failed to load reservation: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error loading reservation:', error);
+                alert('Error loading reservation: ' + error.message);
+            }
+        }
+
+        function cancelEdit() {
+            document.getElementById('editReservationForm').style.display = 'none';
+            document.getElementById('editForm').reset();
+        }
+
+        async function loadEditFormDropdowns() {
+            // Load categories
+            const select = document.getElementById('edit_categoryId');
+            select.innerHTML = '<option value="">Select Category</option>';
+            categories.forEach(cat => {
+                select.innerHTML += `<option value="${cat.categoryId}">${cat.categoryName} - ${cat.capacity} persons (Day: LKR ${cat.dayUsePrice}, Night: LKR ${cat.overnightPrice})</option>`;
+            });
+
+            // Load meal plans
+            const mealSelect = document.getElementById('edit_mealPlanId');
+            mealSelect.innerHTML = '<option value="">No Meal Plan</option>';
+            mealPlans.forEach(plan => {
+                if (plan.available) {
+                    mealSelect.innerHTML += `<option value="${plan.id}">${plan.name} - LKR ${plan.price}</option>`;
+                }
+            });
+
+            // Load extra meals
+            const extraSelect = document.getElementById('edit_extraMeals');
+            extraSelect.innerHTML = '';
+            extraMealsList.forEach(meal => {
+                if (meal.available) {
+                    extraSelect.innerHTML += `<option value="${meal.id}">${meal.name} - LKR ${meal.price}</option>`;
+                }
+            });
+
+            // Load beverages
+            const bevSelect = document.getElementById('edit_beverages');
+            bevSelect.innerHTML = '';
+            beveragesList.forEach(bev => {
+                if (bev.available) {
+                    bevSelect.innerHTML += `<option value="${bev.id}">${bev.name} - LKR ${bev.price}</option>`;
+                }
+            });
+        }
+
+        function calculateEditDays() {
+            const checkIn = new Date(document.getElementById('edit_checkInDate').value);
+            const checkOut = new Date(document.getElementById('edit_checkOutDate').value);
+
+            if (checkIn && checkOut && checkOut > checkIn) {
+                const days = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+                document.getElementById('edit_numberOfDays').value = days;
+                calculateEditBill();
+            }
+        }
+
+        function calculateEditBill() {
+            const categoryId = parseInt(document.getElementById('edit_categoryId').value);
+            const bookingType = document.getElementById('edit_bookingType').value;
+            const numberOfRooms = parseInt(document.getElementById('edit_numberOfRooms').value) || 1;
+            const numberOfDays = parseInt(document.getElementById('edit_numberOfDays').value) || 1;
+            const adults = parseInt(document.getElementById('edit_adults').value) || 1;
+            const kids = parseInt(document.getElementById('edit_kids').value) || 0;
+            const totalPersons = adults + kids;
+
+            let roomCharges = 0;
+            let mealCharges = 0;
+            let extraCharges = 0;
+
+            // Calculate room charges
+            if (categoryId && bookingType) {
+                const category = categories.find(c => c.categoryId === categoryId);
+                if (category) {
+                    const pricePerRoom = bookingType === 'DAY_USE' ? category.dayUsePrice : category.overnightPrice;
+                    roomCharges = pricePerRoom * numberOfRooms * numberOfDays;
+                }
+            }
+
+            // Calculate meal plan charges
+            const mealPlanId = parseInt(document.getElementById('edit_mealPlanId').value);
+            if (mealPlanId) {
+                const mealPlan = mealPlans.find(m => m.id === mealPlanId);
+                if (mealPlan) {
+                    mealCharges = mealPlan.price * totalPersons * numberOfDays;
+                }
+            }
+
+            // Calculate extra meals and beverages
+            const selectedExtraMeals = Array.from(document.getElementById('edit_extraMeals').selectedOptions).map(o => parseInt(o.value));
+            const selectedBeverages = Array.from(document.getElementById('edit_beverages').selectedOptions).map(o => parseInt(o.value));
+
+            selectedExtraMeals.forEach(id => {
+                const meal = extraMealsList.find(m => m.id === id);
+                if (meal) extraCharges += meal.price * totalPersons;
+            });
+
+            selectedBeverages.forEach(id => {
+                const bev = beveragesList.find(b => b.id === id);
+                if (bev) extraCharges += bev.price * totalPersons;
+            });
+
+            const totalAmount = roomCharges + mealCharges + extraCharges;
+
+            document.getElementById('edit_billRoomCharges').textContent = roomCharges.toFixed(2);
+            document.getElementById('edit_billMealCharges').textContent = mealCharges.toFixed(2);
+            document.getElementById('edit_billExtraCharges').textContent = extraCharges.toFixed(2);
+            document.getElementById('edit_billTotalAmount').textContent = totalAmount.toFixed(2);
+        }
+
+        function deleteReservation(id) {
+            if (confirm('Are you sure you want to delete this reservation?')) {
+                fetch(`${API_BASE}/reservations/${id}`, {
+                    method: 'DELETE'
+                }).then(response => response.json())
+                  .then(result => {
+                      if (result.success) {
+                          alert('Reservation deleted successfully');
+                          loadOngoingReservations();
+                      } else {
+                          alert('Failed to delete reservation');
+                      }
+                  });
+            }
         }
 
         async function loadCompletedReservations() {
-            document.getElementById('completedList').innerHTML = '<tr><td colspan="11">No completed reservations</td></tr>';
+            try {
+                const response = await fetch(`${API_BASE}/reservations/`);
+                const result = await response.json();
+
+                if (result.success && result.data && result.data.length > 0) {
+                    const completedReservations = result.data.filter(r =>
+                        r.status === 'CHECKED_OUT' || r.status === 'COMPLETED' || r.status === 'CANCELLED'
+                    );
+
+                    if (completedReservations.length === 0) {
+                        document.getElementById('completedList').innerHTML = '<tr><td colspan="11">No completed reservations</td></tr>';
+                        return;
+                    }
+
+                    const tbody = document.getElementById('completedList');
+                    tbody.innerHTML = completedReservations.map(res => `
+                        <tr>
+                            <td><strong>${res.reservationNumber}</strong></td>
+                            <td>${res.guestId}</td>
+                            <td>${res.adults || 0}/${res.kids || 0}</td>
+                            <td>${res.categoryId || '-'}</td>
+                            <td>${res.bookingType || '-'}</td>
+                            <td>${res.numberOfRooms || 1}</td>
+                            <td>${res.checkInDate ? new Date(res.checkInDate).toLocaleDateString() : '-'}</td>
+                            <td>${res.checkOutDate ? new Date(res.checkOutDate).toLocaleDateString() : '-'}</td>
+                            <td>${res.numberOfDays || 0}</td>
+                            <td>LKR ${res.totalAmount ? res.totalAmount.toFixed(2) : '0.00'}</td>
+                            <td><span style="padding: 3px 8px; border-radius: 3px; background: ${res.status === 'CANCELLED' ? '#f8d7da' : '#d1ecf1'}; color: ${res.status === 'CANCELLED' ? '#721c24' : '#0c5460'};">${res.status}</span></td>
+                        </tr>
+                    `).join('');
+                } else {
+                    document.getElementById('completedList').innerHTML = '<tr><td colspan="11">No completed reservations</td></tr>';
+                }
+            } catch (error) {
+                document.getElementById('completedList').innerHTML = '<tr><td colspan="11">Error loading reservations</td></tr>';
+            }
         }
 
         document.getElementById('reservationForm').addEventListener('submit', async (e) => {
@@ -389,8 +826,10 @@
                 return;
             }
 
+            const form = document.getElementById('reservationForm');
+            const isEdit = form.dataset.editId;
+
             const reservation = {
-                reservationNumber: 'RES' + Date.now(),
                 guestId: parseInt(document.getElementById('guestId').value),
                 adults: parseInt(document.getElementById('adults').value),
                 kids: parseInt(document.getElementById('kids').value),
@@ -406,8 +845,71 @@
             };
 
             try {
+                let response;
+                if (isEdit) {
+                    // Update existing reservation
+                    reservation.reservationId = parseInt(isEdit);
+                    reservation.reservationNumber = form.dataset.resNumber;
+                    response = await fetch(`${API_BASE}/reservations/`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(reservation)
+                    });
+                } else {
+                    // Create new reservation
+                    reservation.reservationNumber = 'RES' + Date.now();
+                    response = await fetch(`${API_BASE}/reservations/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(reservation)
+                    });
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(isEdit ? 'Reservation updated successfully!' : 'Reservation created successfully!');
+                    resetForm();
+                    delete form.dataset.editId;
+                    delete form.dataset.resNumber;
+
+                    // Hide add form and show ongoing reservations
+                    document.getElementById('section-add').style.display = 'none';
+                    document.getElementById('section-ongoing').style.display = 'block';
+
+                    loadOngoingReservations(); // Refresh the ongoing reservations list
+                } else {
+                    alert('Failed to save reservation: ' + result.message);
+                }
+            } catch (error) {
+                alert('Error saving reservation: ' + error.message);
+            }
+        });
+
+        // Edit form submit handler
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const reservation = {
+                reservationId: parseInt(document.getElementById('edit_reservationId').value),
+                reservationNumber: document.getElementById('edit_reservationNumber').value,
+                guestId: parseInt(document.getElementById('edit_guestId').value),
+                adults: parseInt(document.getElementById('edit_adults').value),
+                kids: parseInt(document.getElementById('edit_kids').value),
+                categoryId: parseInt(document.getElementById('edit_categoryId').value),
+                bookingType: document.getElementById('edit_bookingType').value,
+                numberOfRooms: parseInt(document.getElementById('edit_numberOfRooms').value),
+                checkInDate: document.getElementById('edit_checkInDate').value,
+                checkOutDate: document.getElementById('edit_checkOutDate').value,
+                numberOfDays: parseInt(document.getElementById('edit_numberOfDays').value),
+                mealPlanId: document.getElementById('edit_mealPlanId').value ? parseInt(document.getElementById('edit_mealPlanId').value) : null,
+                totalAmount: parseFloat(document.getElementById('edit_billTotalAmount').textContent),
+                status: 'CONFIRMED'
+            };
+
+            try {
                 const response = await fetch(`${API_BASE}/reservations/`, {
-                    method: 'POST',
+                    method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(reservation)
                 });
@@ -415,17 +917,20 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('Reservation created successfully!');
-                    resetForm();
+                    alert('Reservation updated successfully!');
+                    cancelEdit();
+                    loadOngoingReservations();
                 } else {
-                    alert('Failed to create reservation: ' + result.message);
+                    alert('Failed to update reservation: ' + result.message);
                 }
             } catch (error) {
-                alert('Error creating reservation: ' + error.message);
+                alert('Error updating reservation: ' + error.message);
             }
         });
 
+        // Load data when page loads
         loadDropdowns();
+        loadOngoingReservations();
     </script>
 </body>
 </html>

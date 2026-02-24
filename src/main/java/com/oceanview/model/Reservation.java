@@ -23,6 +23,11 @@ public class Reservation {
     private Integer mealPlanId; // nullable
     private String extras; // JSON string for extra meals and beverages
 
+    // Additional fields for display (not in database)
+    private String guestName;
+    private String guestIdNumber;
+    private String categoryName;
+
     // Empty constructor
     public Reservation() {
     }
@@ -169,5 +174,30 @@ public class Reservation {
 
     public void setExtras(String extras) {
         this.extras = extras;
+    }
+
+    // Getters and Setters for display fields
+    public String getGuestName() {
+        return guestName;
+    }
+
+    public void setGuestName(String guestName) {
+        this.guestName = guestName;
+    }
+
+    public String getGuestIdNumber() {
+        return guestIdNumber;
+    }
+
+    public void setGuestIdNumber(String guestIdNumber) {
+        this.guestIdNumber = guestIdNumber;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
     }
 }

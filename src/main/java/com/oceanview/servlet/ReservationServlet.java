@@ -34,13 +34,13 @@ public class ReservationServlet extends BaseServlet {
 
         try {
             if (pathInfo == null || pathInfo.equals("/")) {
-                List<Reservation> reservations = reservationService.getAllReservations();
+                List<Reservation> reservations = reservationService.getAllReservationsWithDetails();
                 sendSuccess(response, "Reservations retrieved successfully", reservations);
             } else {
                 String[] splits = pathInfo.split("/");
                 if (splits.length == 2) {
                     int reservationId = Integer.parseInt(splits[1]);
-                    Reservation reservation = reservationService.getReservationById(reservationId);
+                    Reservation reservation = reservationService.getReservationByIdWithDetails(reservationId);
                     if (reservation != null) {
                         sendSuccess(response, "Reservation found", reservation);
                     } else {
@@ -113,7 +113,43 @@ public class ReservationServlet extends BaseServlet {
 
         try {
             BufferedReader reader = request.getReader();
-            Reservation reservation = gson.fromJson(reader, Reservation.class);
+            String json = reader.lines().collect(java.util.stream.Collectors.joining());
+
+            // Parse JSON manually to handle dates as strings
+            com.google.gson.JsonObject jsonObject = gson.fromJson(json, com.google.gson.JsonObject.class);
+
+            Reservation reservation = new Reservation();
+            reservation.setReservationId(jsonObject.get("reservationId").getAsInt());
+            reservation.setReservationNumber(jsonObject.get("reservationNumber").getAsString());
+            reservation.setGuestId(jsonObject.get("guestId").getAsInt());
+            reservation.setAdults(jsonObject.get("adults").getAsInt());
+            reservation.setKids(jsonObject.get("kids").getAsInt());
+            reservation.setCategoryId(jsonObject.get("categoryId").getAsInt());
+            reservation.setBookingType(jsonObject.get("bookingType").getAsString());
+            reservation.setNumberOfRooms(jsonObject.get("numberOfRooms").getAsInt());
+            reservation.setNumberOfDays(jsonObject.get("numberOfDays").getAsInt());
+            reservation.setTotalAmount(jsonObject.get("totalAmount").getAsDouble());
+            reservation.setStatus(jsonObject.get("status").getAsString());
+
+            // Handle optional meal plan
+            if (jsonObject.has("mealPlanId") && !jsonObject.get("mealPlanId").isJsonNull()) {
+                reservation.setMealPlanId(jsonObject.get("mealPlanId").getAsInt());
+            }
+
+            // Parse dates from yyyy-MM-dd format
+            String checkInStr = jsonObject.get("checkInDate").getAsString();
+            String checkOutStr = jsonObject.get("checkOutDate").getAsString();
+
+            Date checkIn = DateUtil.stringToDate(checkInStr);
+            Date checkOut = DateUtil.stringToDate(checkOutStr);
+
+            if (checkIn == null || checkOut == null) {
+                sendError(response, "Invalid date format. Use yyyy-MM-dd");
+                return;
+            }
+
+            reservation.setCheckInDate(checkIn);
+            reservation.setCheckOutDate(checkOut);
 
             boolean success = reservationService.updateReservation(reservation);
             if (success) {
