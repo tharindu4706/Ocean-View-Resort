@@ -94,6 +94,10 @@
         </footer>
     </div>
 
+    <!-- Load RBAC first so it's available when needed -->
+    <script src="js/rbac.js"></script>
+    <script src="js/auth.js"></script>
+
     <script>
         const API_BASE = 'http://localhost:8080/oceanview-resort/api';
 
@@ -199,6 +203,10 @@
         });
 
         async function deleteCategory(id) {
+            if (!RBAC.hasPermission('roomCategories', 'delete')) {
+                RBAC.showAccessDenied('delete', 'roomCategories');
+                return;
+            }
             if (!confirm('Are you sure? This will affect all rooms using this category!')) return;
 
             try {
@@ -220,6 +228,10 @@
         }
 
         async function editCategory(id) {
+            if (!RBAC.hasPermission('roomCategories', 'edit')) {
+                RBAC.showAccessDenied('edit', 'roomCategories');
+                return;
+            }
             try {
                 const response = await fetch(`${API_BASE}/room-categories/${id}`);
                 const result = await response.json();
@@ -245,7 +257,11 @@
         }
 
         loadCategories();
+
+        // Apply RBAC after DOM is ready
+        setTimeout(() => {
+            RBAC.applyPermissions('roomCategories');
+        }, 100);
     </script>
-    <script src="js/auth.js"></script>
 </body>
 </html>
