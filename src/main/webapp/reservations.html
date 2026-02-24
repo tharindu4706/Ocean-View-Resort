@@ -572,12 +572,41 @@
 
                 if (result.success) {
                     const reservation = result.data;
-                    reservation.status = newStatus;
+
+                    // Convert date strings to yyyy-MM-dd format
+                    function formatDateToISO(dateStr) {
+                        if (!dateStr) return null;
+                        const date = new Date(dateStr);
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                    }
+
+                    const checkInDate = formatDateToISO(reservation.checkInDate);
+                    const checkOutDate = formatDateToISO(reservation.checkOutDate);
+
+                    const updateData = {
+                        reservationId: reservation.reservationId,
+                        reservationNumber: reservation.reservationNumber,
+                        guestId: reservation.guestId,
+                        adults: reservation.adults || 1,
+                        kids: reservation.kids || 0,
+                        categoryId: reservation.categoryId,
+                        bookingType: reservation.bookingType,
+                        numberOfRooms: reservation.numberOfRooms || 1,
+                        checkInDate: checkInDate,
+                        checkOutDate: checkOutDate,
+                        numberOfDays: reservation.numberOfDays || 1,
+                        mealPlanId: reservation.mealPlanId || null,
+                        totalAmount: reservation.totalAmount,
+                        status: newStatus
+                    };
 
                     const updateResponse = await fetch(`${API_BASE}/reservations/`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(reservation)
+                        body: JSON.stringify(updateData)
                     });
 
                     const updateResult = await updateResponse.json();
@@ -585,10 +614,13 @@
                         alert('Status updated successfully');
                         loadOngoingReservations();
                     } else {
-                        alert('Failed to update status');
+                        alert('Failed to update status: ' + updateResult.message);
                     }
+                } else {
+                    alert('Failed to load reservation: ' + result.message);
                 }
             } catch (error) {
+                console.error('Error updating status:', error);
                 alert('Error updating status: ' + error.message);
             }
         }
